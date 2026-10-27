@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pocket-snake-v2';
+const CACHE_NAME = 'pocket-arcade-v8';
 const APP_FILES = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -14,7 +14,10 @@ self.addEventListener('activate', (event) => {
         caches.keys()
             .then((keys) => Promise.all(
                 keys
-                    .filter((key) => key.startsWith('pocket-snake-') && key !== CACHE_NAME)
+                    .filter((key) =>
+                        (key.startsWith('pocket-arcade-') || key.startsWith('pocket-snake-')) &&
+                        key !== CACHE_NAME
+                    )
                     .map((key) => caches.delete(key))
             ))
             .then(() => self.clients.claim())

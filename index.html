@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#101812">
-    <meta name="description" content="A pocket-sized retro Snake game.">
-    <title>Snake — Pocket Arcade</title>
+    <meta name="description" content="Pick a game and play in the Pocket Arcade.">
+    <title>Pocket Arcade</title>
     <link rel="manifest" href="./manifest.json">
     <link rel="icon" href="./icon.svg" type="image/svg+xml">
     <style>
@@ -70,7 +70,27 @@
         }
 
         .topbar {
+            position: relative;
             min-height: 34px;
+        }
+
+        .home-button {
+            display: none;
+            min-height: 36px;
+            border: 1px solid #354537;
+            border-radius: 10px;
+            padding: 0 11px;
+            background: #1a251c;
+            color: #d7e5cd;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .app.game-mode .home-button {
+            display: inline-flex;
+            align-items: center;
         }
 
         .brand {
@@ -79,6 +99,14 @@
             font-size: 15px;
             font-weight: 800;
             letter-spacing: 0.16em;
+        }
+
+        .app.game-mode .brand {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            white-space: nowrap;
         }
 
         .install-button,
@@ -277,6 +305,222 @@
             text-align: center;
         }
 
+        .home-view,
+        .game-view {
+            min-height: 0;
+            flex: 1;
+        }
+
+        .home-view {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: clamp(18px, 4vh, 32px);
+        }
+
+        .home-view[hidden] {
+            display: none;
+        }
+
+        .home-intro {
+            display: grid;
+            gap: 8px;
+            text-align: center;
+        }
+
+        .home-title {
+            margin: 0;
+            color: #e6f4d7;
+            font-size: clamp(27px, 8vw, 40px);
+            letter-spacing: -0.06em;
+        }
+
+        .home-copy {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .game-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 13px;
+        }
+
+        .game-card {
+            min-width: 0;
+            display: grid;
+            justify-items: start;
+            gap: 12px;
+            padding: 14px;
+            border: 1px solid #344537;
+            border-radius: 18px;
+            background: linear-gradient(155deg, #202d22, #172119);
+            text-align: left;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: transform 160ms ease, border-color 160ms ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-3px);
+            border-color: #70895f;
+        }
+
+        .game-icon {
+            width: 100%;
+            aspect-ratio: 1.16;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            border: 1px solid #344537;
+            border-radius: 13px;
+            background: radial-gradient(circle at 50% 40%, #30452f, #172119 72%);
+        }
+
+        .game-icon svg {
+            width: 76%;
+            height: 76%;
+            overflow: visible;
+        }
+
+        .game-card-copy {
+            display: grid;
+            gap: 5px;
+        }
+
+        .game-card-title {
+            color: #e6f4d7;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .game-card-description {
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.35;
+        }
+
+        .home-tagline {
+            margin: 0;
+            color: #667565;
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-align: center;
+        }
+
+        .game-view {
+            display: none;
+            flex-direction: column;
+            gap: clamp(10px, 2vh, 18px);
+        }
+
+        .game-view.active {
+            display: flex;
+        }
+
+        .cube-score-row {
+            min-height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 14px;
+            border: 1px solid #29382b;
+            border-radius: 14px;
+            background: rgba(26, 37, 28, 0.88);
+        }
+
+        .cube-stat {
+            display: grid;
+            gap: 5px;
+        }
+
+        .cube-stat-value {
+            color: var(--lime);
+            font-size: 20px;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .cube-stage-frame {
+            min-height: 0;
+            flex: 1;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            perspective: 760px;
+            touch-action: none;
+        }
+
+        .cube-stage {
+            --cube-unit: min(25vw, 76px);
+            position: relative;
+            width: calc(var(--cube-unit) * 3);
+            height: calc(var(--cube-unit) * 3);
+            transform-style: preserve-3d;
+            transition: transform 90ms linear;
+            will-change: transform;
+        }
+
+        .cube-sticker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: var(--cube-unit);
+            height: var(--cube-unit);
+            margin: calc(var(--cube-unit) / -2);
+            border: max(2px, calc(var(--cube-unit) * 0.035)) solid #111;
+            border-radius: calc(var(--cube-unit) * 0.12);
+            backface-visibility: hidden;
+            box-shadow: inset 0 0 0 1px #ffffff18;
+        }
+
+        .cube-controls {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 7px;
+        }
+
+        .cube-turn-button {
+            min-height: 46px;
+            border: 1px solid #354537;
+            border-radius: 11px;
+            background: linear-gradient(145deg, #253328, #19231b);
+            color: #e6f4d7;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .cube-turn-button span {
+            color: var(--lime);
+        }
+
+        .cube-turn-button:active {
+            transform: translateY(1px);
+            filter: brightness(1.15);
+        }
+
+        .cube-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .cube-actions .small-button {
+            flex: 1;
+            padding-inline: 8px;
+        }
+
+        .cube-hint {
+            margin: 0;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.45;
+            text-align: center;
+        }
+
         @media (max-height: 650px) {
             body {
                 padding-top: max(7px, env(safe-area-inset-top));
@@ -297,6 +541,23 @@
                 width: min(208px, 100%);
                 height: 136px;
             }
+
+            .game-view {
+                gap: 8px;
+            }
+
+            .cube-stage {
+                --cube-unit: min(21vw, 58px);
+            }
+
+            .cube-score-row {
+                min-height: 52px;
+                padding-block: 7px;
+            }
+
+            .cube-turn-button {
+                min-height: 40px;
+            }
         }
 
         @media (min-width: 700px) and (min-height: 700px) {
@@ -311,12 +572,53 @@
     </style>
 </head>
 <body>
-    <main class="app">
+    <main class="app home-mode" id="app">
         <div class="topbar">
+            <button class="home-button" id="homeButton" type="button" aria-label="Back to games">← GAMES</button>
             <h1 class="brand">POCKET ARCADE</h1>
             <button class="install-button" id="installButton" type="button">＋ INSTALL</button>
         </div>
 
+        <section class="home-view" id="homeView" aria-labelledby="homeTitle">
+            <div class="home-intro">
+                <h2 class="home-title" id="homeTitle">Pick your game</h2>
+                <p class="home-copy">A little arcade, always in your pocket.</p>
+            </div>
+            <div class="game-list">
+                <button class="game-card" type="button" data-open-game="snake">
+                    <span class="game-icon" aria-hidden="true">
+                        <svg viewBox="0 0 120 100" fill="none">
+                            <path d="M25 29h25v21h24V29h22v21H74v21H50v-21H25z" fill="#b7f36b" stroke="#101812" stroke-width="5" stroke-linejoin="round"/>
+                            <circle cx="87" cy="38" r="3" fill="#20311b"/>
+                            <circle cx="44" cy="80" r="8" fill="#ff806b"/>
+                            <path d="M20 17v66M12 25h16M12 75h16" stroke="#77956a" stroke-width="3" stroke-linecap="round" opacity=".8"/>
+                        </svg>
+                    </span>
+                    <span class="game-card-copy">
+                        <span class="game-card-title">Snake</span>
+                        <span class="game-card-description">Classic retro arcade</span>
+                    </span>
+                </button>
+                <button class="game-card" type="button" data-open-game="cube">
+                    <span class="game-icon" aria-hidden="true">
+                        <svg viewBox="0 0 120 110" fill="none">
+                            <path d="m60 12 39 22v44l-39 22-39-22V34z" fill="#101812" stroke="#d7e5cd" stroke-width="4" stroke-linejoin="round"/>
+                            <path d="m60 12 39 22-39 23-39-23z" fill="#ffcb4b" stroke="#101812" stroke-width="3" stroke-linejoin="round"/>
+                            <path d="M21 34v44l39 22V57z" fill="#4188ff" stroke="#101812" stroke-width="3" stroke-linejoin="round"/>
+                            <path d="M99 34v44L60 100V57z" fill="#ff5a4f" stroke="#101812" stroke-width="3" stroke-linejoin="round"/>
+                            <path d="m47 20 1 44m25-38 1 43M34 42l39 22M47 49l39-22M34 63l39 22" stroke="#101812" stroke-width="2.5"/>
+                        </svg>
+                    </span>
+                    <span class="game-card-copy">
+                        <span class="game-card-title">Cube</span>
+                        <span class="game-card-description">3D color puzzle</span>
+                    </span>
+                </button>
+            </div>
+            <p class="home-tagline">MORE GAMES COMING SOON</p>
+        </section>
+
+        <section class="game-view" id="snakeView" aria-label="Snake game">
         <section class="score-row" aria-label="Game scores">
             <div class="score-block">
                 <span class="score-label">SCORE</span>
@@ -352,6 +654,37 @@
             <button class="direction-button" type="button" data-direction="right" aria-label="Move right">→</button>
         </div>
         <footer class="footer">GROW LONGER. DON'T BITE YOUR TAIL.</footer>
+        </section>
+
+        <section class="game-view" id="cubeView" aria-label="Rubik's Cube game">
+            <div class="cube-score-row">
+                <div class="cube-stat">
+                    <span class="score-label">TIME</span>
+                    <output class="cube-stat-value" id="cubeTime">00:00</output>
+                </div>
+                <div class="cube-stat">
+                    <span class="score-label">MOVES</span>
+                    <output class="cube-stat-value" id="cubeMoves">0</output>
+                </div>
+                <button class="small-button" id="cubeResetButton" type="button">↻ RESET</button>
+            </div>
+            <div class="cube-stage-frame" id="cubeStageFrame" aria-label="3D Rubik's Cube. Drag to rotate the view.">
+                <div class="cube-stage" id="cubeStage" aria-hidden="true"></div>
+            </div>
+            <div class="cube-controls" aria-label="Turn a cube face">
+                <button class="cube-turn-button" type="button" data-face="U">U <span>↻</span></button>
+                <button class="cube-turn-button" type="button" data-face="D">D <span>↻</span></button>
+                <button class="cube-turn-button" type="button" data-face="F">F <span>↻</span></button>
+                <button class="cube-turn-button" type="button" data-face="B">B <span>↻</span></button>
+                <button class="cube-turn-button" type="button" data-face="R">R <span>↻</span></button>
+                <button class="cube-turn-button" type="button" data-face="L">L <span>↻</span></button>
+            </div>
+            <div class="cube-actions">
+                <button class="small-button" id="cubeDirectionButton" type="button">↻ CLOCKWISE</button>
+                <button class="small-button" id="cubeScrambleButton" type="button">⤨ SCRAMBLE</button>
+            </div>
+            <p class="cube-hint">Turn faces to move stickers and mix colors.<br>Reset to return to the solved cube.</p>
+        </section>
     </main>
 
     <script>
@@ -388,6 +721,210 @@
             let elapsed = 0;
             let deferredInstallPrompt;
             let swipeStart = null;
+            let snakePausedForNav = false;
+
+            const app = document.getElementById('app');
+            const homeView = document.getElementById('homeView');
+            const snakeView = document.getElementById('snakeView');
+            const cubeView = document.getElementById('cubeView');
+            const cubeStage = document.getElementById('cubeStage');
+            const cubeStageFrame = document.getElementById('cubeStageFrame');
+            const cubeTimeOutput = document.getElementById('cubeTime');
+            const cubeMovesOutput = document.getElementById('cubeMoves');
+            const cubeHint = document.querySelector('.cube-hint');
+            const cubeColors = {
+                '0,1,0': '#f5f4ed',
+                '0,-1,0': '#ffd84a',
+                '0,0,1': '#ff554f',
+                '0,0,-1': '#ff963e',
+                '1,0,0': '#448cff',
+                '-1,0,0': '#47cc76'
+            };
+            const cubeFaces = {
+                U: { axis: 1, sign: 1 },
+                D: { axis: 1, sign: -1 },
+                F: { axis: 2, sign: 1 },
+                B: { axis: 2, sign: -1 },
+                R: { axis: 0, sign: 1 },
+                L: { axis: 0, sign: -1 }
+            };
+            let cubelets = [];
+            let cubeMoves = 0;
+            let cubeStartedAt = 0;
+            let cubeStoppedAt = 0;
+            let cubeSolved = true;
+            let cubeReverse = false;
+            let cubeYaw = -35;
+            let cubePitch = -25;
+            let cubeDragStart = null;
+
+            function resetCube() {
+                cubelets = [];
+                for (let x = -1; x <= 1; x += 1) {
+                    for (let y = -1; y <= 1; y += 1) {
+                        for (let z = -1; z <= 1; z += 1) {
+                            const stickers = {};
+                            if (x === 1) stickers['1,0,0'] = cubeColors['1,0,0'];
+                            if (x === -1) stickers['-1,0,0'] = cubeColors['-1,0,0'];
+                            if (y === 1) stickers['0,1,0'] = cubeColors['0,1,0'];
+                            if (y === -1) stickers['0,-1,0'] = cubeColors['0,-1,0'];
+                            if (z === 1) stickers['0,0,1'] = cubeColors['0,0,1'];
+                            if (z === -1) stickers['0,0,-1'] = cubeColors['0,0,-1'];
+                            cubelets.push({ position: [x, y, z], stickers });
+                        }
+                    }
+                }
+                cubeMoves = 0;
+                cubeStartedAt = 0;
+                cubeStoppedAt = 0;
+                cubeSolved = true;
+                cubeMovesOutput.value = '0';
+                cubeMovesOutput.textContent = '0';
+                cubeTimeOutput.value = '00:00';
+                cubeTimeOutput.textContent = '00:00';
+                cubeHint.innerHTML = 'Turn faces to move stickers and mix colors.<br>Reset to return to the solved cube.';
+                renderCube();
+            }
+
+            function rotateVector(vector, axisIndex, quarterTurns) {
+                const axis = [0, 0, 0];
+                axis[axisIndex] = 1;
+                const cross = quarterTurns > 0
+                    ? [
+                        axis[1] * vector[2] - axis[2] * vector[1],
+                        axis[2] * vector[0] - axis[0] * vector[2],
+                        axis[0] * vector[1] - axis[1] * vector[0]
+                    ]
+                    : [
+                        vector[1] * axis[2] - vector[2] * axis[1],
+                        vector[2] * axis[0] - vector[0] * axis[2],
+                        vector[0] * axis[1] - vector[1] * axis[0]
+                    ];
+                const projection = vector[axisIndex];
+                return axis.map((component, index) => component * projection + cross[index]);
+            }
+
+            function turnCubeFace(face, reverse = cubeReverse, countMove = true) {
+                const faceInfo = cubeFaces[face];
+                if (!faceInfo) return;
+                const quarterTurns = (reverse ? 1 : -1) * faceInfo.sign;
+                cubelets.forEach((cubelet) => {
+                    if (cubelet.position[faceInfo.axis] !== faceInfo.sign) return;
+                    cubelet.position = rotateVector(cubelet.position, faceInfo.axis, quarterTurns);
+                    const rotatedStickers = {};
+                    Object.entries(cubelet.stickers).forEach(([normalKey, color]) => {
+                        const normal = normalKey.split(',').map(Number);
+                        const rotatedNormal = rotateVector(normal, faceInfo.axis, quarterTurns);
+                        rotatedStickers[rotatedNormal.join(',')] = color;
+                    });
+                    cubelet.stickers = rotatedStickers;
+                });
+                if (countMove) {
+                    if (cubeSolved || cubeStartedAt === 0) {
+                        cubeStartedAt = Date.now();
+                        cubeStoppedAt = 0;
+                        if (cubeSolved) cubeMoves = 0;
+                    }
+                    cubeMoves += 1;
+                    cubeMovesOutput.value = String(cubeMoves);
+                    cubeMovesOutput.textContent = cubeMovesOutput.value;
+                    cubeSolved = false;
+                    if (isCubeSolved()) {
+                        cubeSolved = true;
+                        cubeStoppedAt = Date.now();
+                        cubeHint.textContent = `Solved in ${cubeMoves} moves. Brilliant!`;
+                    }
+                }
+                renderCube();
+                updateCubeTime();
+            }
+
+            function isCubeSolved() {
+                return cubelets.every((cubelet) =>
+                    Object.entries(cubelet.stickers).every(([normal, color]) => cubeColors[normal] === color)
+                );
+            }
+
+            function renderCube() {
+                const unit = cubeStage.getBoundingClientRect().width / 3;
+                if (!unit) return;
+                const stickers = [];
+                cubelets.forEach((cubelet) => {
+                    Object.entries(cubelet.stickers).forEach(([normalKey, color]) => {
+                        const normal = normalKey.split(',').map(Number);
+                        const [nx, ny, nz] = normal;
+                        const [x, y, z] = cubelet.position;
+                        let faceRotation = '';
+                        if (nx === 1) faceRotation = ' rotateY(90deg)';
+                        else if (nx === -1) faceRotation = ' rotateY(-90deg)';
+                        // CSS y points down, opposite to the cube model's y axis.
+                        else if (ny === 1) faceRotation = ' rotateX(90deg)';
+                        else if (ny === -1) faceRotation = ' rotateX(-90deg)';
+                        else if (nz === -1) faceRotation = ' rotateY(180deg)';
+
+                        const sticker = document.createElement('span');
+                        sticker.className = 'cube-sticker';
+                        sticker.style.backgroundColor = color;
+                        sticker.style.transform =
+                            `translate3d(${(x + nx / 2) * unit}px, ${-(y + ny / 2) * unit}px, ${(z + nz / 2) * unit}px)` +
+                            faceRotation;
+                        stickers.push(sticker);
+                    });
+                });
+                cubeStage.replaceChildren(...stickers);
+                cubeStage.style.transform = `rotateX(${cubePitch}deg) rotateY(${cubeYaw}deg)`;
+            }
+
+            function updateCubeTime() {
+                const seconds = cubeStartedAt
+                    ? Math.floor(((cubeStoppedAt || Date.now()) - cubeStartedAt) / 1000)
+                    : 0;
+                const time = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+                cubeTimeOutput.value = time;
+                cubeTimeOutput.textContent = time;
+            }
+
+            function scrambleCube() {
+                let previousFace = '';
+                for (let index = 0; index < 22; index += 1) {
+                    const choices = Object.keys(cubeFaces).filter((face) => face !== previousFace);
+                    const face = choices[Math.floor(Math.random() * choices.length)];
+                    turnCubeFace(face, Math.random() < 0.5, false);
+                    previousFace = face;
+                }
+                cubeMoves = 0;
+                cubeStartedAt = 0;
+                cubeStoppedAt = 0;
+                cubeSolved = false;
+                cubeMovesOutput.value = '0';
+                cubeMovesOutput.textContent = '0';
+                cubeTimeOutput.value = '00:00';
+                cubeTimeOutput.textContent = '00:00';
+                cubeHint.innerHTML = 'Cube scrambled! Turn faces to solve it.<br>Reset to start over.';
+                renderCube();
+            }
+
+            function showGame(game) {
+                if (snakeView.classList.contains('active') && game !== 'snake' && running) {
+                    running = false;
+                    snakePausedForNav = true;
+                }
+                homeView.hidden = game !== null;
+                snakeView.classList.toggle('active', game === 'snake');
+                cubeView.classList.toggle('active', game === 'cube');
+                app.classList.toggle('game-mode', game !== null);
+                app.classList.toggle('home-mode', game === null);
+
+                if (game === 'snake') {
+                    if (snakePausedForNav) {
+                        running = true;
+                        snakePausedForNav = false;
+                        previousFrame = 0;
+                    }
+                    resizeCanvas();
+                }
+                if (game === 'cube') renderCube();
+            }
 
             bestOutput.value = String(bestScore).padStart(2, '0');
             bestOutput.textContent = bestOutput.value;
@@ -643,6 +1180,7 @@
             });
 
             document.addEventListener('keydown', (event) => {
+                if (!snakeView.classList.contains('active')) return;
                 const keys = {
                     ArrowUp: 'up',
                     ArrowRight: 'right',
@@ -660,7 +1198,47 @@
                 }
             });
 
-            window.addEventListener('resize', resizeCanvas);
+            document.querySelectorAll('[data-open-game]').forEach((button) => {
+                button.addEventListener('click', () => showGame(button.dataset.openGame));
+            });
+            document.getElementById('homeButton').addEventListener('click', () => showGame(null));
+            document.querySelectorAll('.cube-turn-button').forEach((button) => {
+                button.addEventListener('click', () => turnCubeFace(button.dataset.face));
+            });
+            document.getElementById('cubeResetButton').addEventListener('click', resetCube);
+            document.getElementById('cubeScrambleButton').addEventListener('click', scrambleCube);
+            document.getElementById('cubeDirectionButton').addEventListener('click', (event) => {
+                cubeReverse = !cubeReverse;
+                event.currentTarget.textContent = cubeReverse ? '↺ COUNTER-CLOCKWISE' : '↻ CLOCKWISE';
+                document.querySelectorAll('.cube-turn-button span').forEach((arrow) => {
+                    arrow.textContent = cubeReverse ? '↺' : '↻';
+                });
+            });
+
+            cubeStageFrame.addEventListener('pointerdown', (event) => {
+                cubeDragStart = { x: event.clientX, y: event.clientY };
+                cubeStageFrame.setPointerCapture(event.pointerId);
+            });
+            cubeStageFrame.addEventListener('pointermove', (event) => {
+                if (!cubeDragStart) return;
+                const deltaX = event.clientX - cubeDragStart.x;
+                const deltaY = event.clientY - cubeDragStart.y;
+                cubeYaw += deltaX * 0.7;
+                cubePitch = Math.max(-80, Math.min(80, cubePitch - deltaY * 0.7));
+                cubeDragStart = { x: event.clientX, y: event.clientY };
+                cubeStage.style.transform = `rotateX(${cubePitch}deg) rotateY(${cubeYaw}deg)`;
+            });
+            cubeStageFrame.addEventListener('pointerup', () => {
+                cubeDragStart = null;
+            });
+            cubeStageFrame.addEventListener('pointercancel', () => {
+                cubeDragStart = null;
+            });
+
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                renderCube();
+            });
             window.addEventListener('beforeinstallprompt', (event) => {
                 event.preventDefault();
                 deferredInstallPrompt = event;
@@ -689,7 +1267,9 @@
             overlayCopy.textContent = 'Swipe to steer. Grab the fruit and avoid the walls.';
             overlayButton.textContent = 'START GAME';
             overlay.hidden = false;
+            resetCube();
             resizeCanvas();
+            window.setInterval(updateCubeTime, 250);
             window.requestAnimationFrame(frame);
         })();
     </script>
