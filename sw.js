@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pocket-arcade-v8';
+const CACHE_NAME = 'pocket-arcade-v11';
 const APP_FILES = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (event) => {
