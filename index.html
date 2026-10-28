@@ -1470,6 +1470,7 @@
             let movieSubtitleUrl = null;
             let movieLoadToken = 0;
             let selectedMovieUrl = null;
+            let selectedMovieSubtitleUrl = null;
             const movieExtensions = new Set(['mp4', 'm4v', 'mov', 'mkv', 'webm', 'ogv', 'ogg']);
             const cubeColors = {
                 '0,1,0': '#f5f4ed',
@@ -3247,6 +3248,7 @@
                 const encodedPath = path.split('/').map(encodeURIComponent).join('/');
                 const url = new URL(`/movies/${encodedPath}`, location.origin);
                 selectedMovieUrl = url.href;
+                selectedMovieSubtitleUrl = null;
                 movieOpenVlc.hidden = !path.toLowerCase().endsWith('.mkv');
                 moviesPlayer.hidden = false;
                 moviesPlayer.pause();
@@ -3269,6 +3271,8 @@
                             });
                             if (token !== movieLoadToken) return;
                             if (subtitleResponse.ok) {
+                                selectedMovieSubtitleUrl = new URL(`/movies/${subtitlePath}`, location.origin).href;
+                                movieOpenVlc.hidden = false;
                                 const subtitleText = (await subtitleResponse.text())
                                     .replace(/^\uFEFF/, '')
                                     .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2')
@@ -3317,7 +3321,11 @@
 
             movieOpenVlc.addEventListener('click', () => {
                 if (!selectedMovieUrl) return;
-                const vlcUrl = `vlc-x-callback://x-callback-url/stream?url=${encodeURIComponent(selectedMovieUrl)}`;
+                const vlcUrl = new URL('vlc-x-callback://x-callback-url/stream');
+                vlcUrl.searchParams.set('url', selectedMovieUrl);
+                if (selectedMovieSubtitleUrl) {
+                    vlcUrl.searchParams.set('sub', selectedMovieSubtitleUrl);
+                }
                 window.location.href = vlcUrl;
             });
 
