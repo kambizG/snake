@@ -1598,17 +1598,19 @@
                 quizSpeechButton.disabled = !quizModelSupported || (quizAsrReady && !quizSpeechSupported);
                 quizSpeechButton.textContent = quizAsrReady
                     ? quizSpeechSupported ? '🎙 SPEAK ANSWER' : 'MICROPHONE NOT SUPPORTED'
-                    : 'LOAD VOICE MODEL (~52 MB)';
+                    : quizAsrLoading ? 'LOADING VOICE MODEL…' : 'LOAD VOICE MODEL (~52 MB)';
                 setQuizFeedback('Finding the country on the map…');
                 try {
                     const arrived = await flyToQuizCountry(quizCurrentCountry, token);
                     if (!arrived) return;
                     quizFlag.classList.add('visible');
-                    setQuizFeedback(
-                        quizAsrReady
-                            ? 'Tap the microphone and say your answer.'
-                            : 'Download the voice model once. Your speech stays on this device.'
-                    );
+                    if (quizAsrReady) {
+                        setQuizFeedback('Tap the microphone and say your answer.');
+                    } else if (quizAsrLoading) {
+                        setQuizFeedback('Loading the on-device voice model. This may take a few minutes the first time.');
+                    } else {
+                        setQuizFeedback('The voice model could not load. Check your connection and tap retry.');
+                    }
                 } catch (error) {
                     console.error('Could not show the Flag Quiz map:', error);
                     setQuizFeedback('The map could not be loaded. Reload the app and try again.', 'error');
@@ -1694,6 +1696,11 @@
                     quizCompleted = 0;
                     updateQuizStats();
                     showQuizQuestion();
+                    if (quizModelSupported && !quizAsrReady) {
+                        ensureQuizAsrModel().catch((error) => {
+                            console.error('Could not automatically load the on-device speech model:', error);
+                        });
+                    }
                 } catch (error) {
                     console.error('Could not start the Flag Quiz:', error);
                     quizProgress.textContent = 'Quiz assets could not be loaded.';
