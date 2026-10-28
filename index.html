@@ -1313,6 +1313,7 @@
             let quizAsrReject = null;
             let quizAsrReady = false;
             let quizAsrLoading = false;
+            let quizModelSupported = false;
             let quizSpeechSupported = false;
             let quizAudioContext = null;
             let quizAudioSource = null;
@@ -1594,8 +1595,10 @@
                 quizFlag.setAttribute('aria-label', `${quizCurrentCountry.name} flag`);
                 quizNextButton.disabled = false;
                 quizNextButton.textContent = 'SKIP';
-                quizSpeechButton.disabled = !quizSpeechSupported;
-                quizSpeechButton.textContent = quizAsrReady ? '🎙 SPEAK ANSWER' : 'LOAD VOICE MODEL (~52 MB)';
+                quizSpeechButton.disabled = !quizModelSupported || (quizAsrReady && !quizSpeechSupported);
+                quizSpeechButton.textContent = quizAsrReady
+                    ? quizSpeechSupported ? '🎙 SPEAK ANSWER' : 'MICROPHONE NOT SUPPORTED'
+                    : 'LOAD VOICE MODEL (~52 MB)';
                 setQuizFeedback('Finding the country on the map…');
                 try {
                     const arrived = await flyToQuizCountry(quizCurrentCountry, token);
@@ -1703,18 +1706,24 @@
             function initializeQuizSpeech() {
                 const hasAudioContext = window.AudioContext || window.webkitAudioContext;
                 const hasOfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-                const supported = window.isSecureContext &&
+                quizModelSupported = window.isSecureContext &&
+                    window.Worker &&
+                    window.WebAssembly;
+                quizSpeechSupported = Boolean(window.isSecureContext &&
                     navigator.mediaDevices?.getUserMedia &&
                     hasAudioContext &&
                     typeof hasAudioContext.prototype.createScriptProcessor === 'function' &&
                     hasOfflineAudioContext &&
                     window.Worker &&
-                    window.WebAssembly &&
-                    window.caches;
-                quizSpeechSupported = Boolean(supported);
-                if (!supported) {
+                    window.WebAssembly);
+                if (!quizModelSupported) {
                     quizSpeechButton.disabled = true;
-                    quizSpeechNote.textContent = 'On-device voice answers need HTTPS, microphone recording, and browser support for audio and WebAssembly.';
+                    quizSpeechNote.textContent = 'On-device voice answers need HTTPS and browser support for Web Workers and WebAssembly.';
+                    return;
+                }
+                if (!quizSpeechSupported) {
+                    quizSpeechButton.disabled = false;
+                    quizSpeechNote.textContent = 'Load the voice model first. This browser may not support microphone recording for spoken answers.';
                     return;
                 }
                 quizSpeechNote.textContent = 'Downloads about 52 MB once. Speech is processed on-device and cached for later use.';
@@ -1738,9 +1747,13 @@
                 if (message.type === 'ready') {
                     quizAsrReady = true;
                     quizAsrLoading = false;
-                    quizSpeechButton.disabled = !countryQuizView.classList.contains('active') || quizAnswered;
-                    quizSpeechButton.textContent = quizAnswered ? 'ANSWER RECORDED' : '🎙 SPEAK ANSWER';
-                    quizSpeechNote.textContent = 'Voice processing stays on this device. The model is cached; Safari may clear it if storage is low.';
+                    quizSpeechButton.disabled = !countryQuizView.classList.contains('active') || quizAnswered || !quizSpeechSupported;
+                    quizSpeechButton.textContent = quizAnswered
+                        ? 'ANSWER RECORDED'
+                        : quizSpeechSupported ? '🎙 SPEAK ANSWER' : 'MICROPHONE NOT SUPPORTED';
+                    quizSpeechNote.textContent = quizSpeechSupported
+                        ? 'Voice processing stays on this device. The model is cached; Safari may clear it if storage is low.'
+                        : 'The model is ready, but this browser does not support the audio features needed to record your answer.';
                     setQuizFeedback('Voice model ready. Tap the microphone and say your answer.');
                     if (quizAsrResolve) quizAsrResolve();
                     quizAsrResolve = null;
@@ -2933,9 +2946,9 @@
                 if (game === 'country-quiz' && !quizStarted) {
                     startCountryQuiz();
                 } else if (game === 'country-quiz' && quizCurrentCountry && !quizAnswered) {
-                    quizSpeechButton.disabled = !quizSpeechSupported;
+                    quizSpeechButton.disabled = !quizModelSupported || (quizAsrReady && !quizSpeechSupported);
                     quizSpeechButton.textContent = quizAsrReady
-                        ? '🎙 SPEAK ANSWER'
+                        ? quizSpeechSupported ? '🎙 SPEAK ANSWER' : 'MICROPHONE NOT SUPPORTED'
                         : quizAsrLoading ? 'LOADING VOICE MODEL…' : 'LOAD VOICE MODEL (~52 MB)';
                 }
             }
