@@ -1,5 +1,15 @@
-const CACHE_NAME = 'pocket-arcade-v14';
-const APP_FILES = ['./', './index.html', './manifest.json', './icon.svg'];
+const CACHE_NAME = 'pocket-arcade-v16';
+const APP_FILES = [
+    './',
+    './index.html',
+    './manifest.json',
+    './icon.svg',
+    './src/data/countries.json',
+    './src/data/world-map.svg',
+    './src/data/flags.svg',
+    './src/data/COUNTRY_DATA_LICENSE.txt',
+    './src/data/ASSETS_LICENSE.txt'
+];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(

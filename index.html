@@ -688,6 +688,210 @@
             color: #aee4df;
         }
 
+        .country-quiz-view {
+            gap: 12px;
+        }
+
+        .quiz-stats {
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 9px 14px;
+            border: 1px solid #29382b;
+            border-radius: 14px;
+            background: rgba(26, 37, 28, 0.88);
+        }
+
+        .quiz-stat {
+            display: grid;
+            gap: 4px;
+        }
+
+        .quiz-stat:last-child {
+            text-align: right;
+        }
+
+        .quiz-stat-value {
+            color: var(--lime);
+            font-size: 19px;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .quiz-panel {
+            min-height: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            border: 1px solid #344537;
+            border-radius: 18px;
+            background: linear-gradient(155deg, #202d22, #172119);
+            text-align: center;
+        }
+
+        .quiz-mode-switch {
+            width: min(100%, 340px);
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            padding: 4px;
+            border: 1px solid #344537;
+            border-radius: 12px;
+            background: #111a13;
+        }
+
+        .quiz-mode-button {
+            min-height: 38px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .quiz-mode-button.active {
+            background: #2a3b2c;
+            color: var(--lime);
+            box-shadow: inset 0 0 0 1px #40563b;
+        }
+
+        .quiz-progress {
+            margin: 0;
+            color: var(--muted);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+        }
+
+        .quiz-map-container {
+            width: 100%;
+            min-height: 150px;
+            max-height: min(36vh, 300px);
+            flex: 1 1 210px;
+            overflow: hidden;
+            border: 1px solid #40563b;
+            border-radius: 14px;
+            background:
+                radial-gradient(ellipse at 50% 50%, #18323a 0, #12252d 68%, #101812 100%);
+        }
+
+        .quiz-map-container svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .quiz-map-country {
+            fill: #31483b;
+            stroke: #91a990;
+            stroke-width: 0.22;
+            stroke-linejoin: round;
+            vector-effect: non-scaling-stroke;
+        }
+
+        .quiz-map-country.selected {
+            fill: #b7f36b;
+            stroke: #e3ffb8;
+            stroke-width: 0.55;
+        }
+
+        #worldMapMarker {
+            fill: #ffda70;
+            stroke: #152012;
+            stroke-width: 0.65;
+            vector-effect: non-scaling-stroke;
+            filter: drop-shadow(0 0 2px #ffda70);
+        }
+
+        .quiz-flag {
+            width: min(160px, 42vw);
+            height: clamp(72px, 12vh, 105px);
+            flex: 0 0 auto;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            border: 1px solid #ffffff26;
+            border-radius: 8px;
+            background: #101812;
+            box-shadow: 0 8px 18px #0005;
+        }
+
+        .quiz-flag use {
+            width: 100%;
+            height: 100%;
+        }
+
+        .quiz-question {
+            margin: 0;
+            color: #e6f4d7;
+            font-size: clamp(16px, 4vw, 21px);
+            font-weight: 800;
+        }
+
+        .quiz-feedback {
+            min-height: 38px;
+            display: grid;
+            align-content: center;
+            color: #c2d0b9;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .quiz-feedback.correct {
+            color: var(--lime);
+        }
+
+        .quiz-feedback.incorrect,
+        .quiz-feedback.error {
+            color: #ff9a87;
+        }
+
+        .quiz-action-row {
+            width: min(100%, 380px);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .quiz-action-button {
+            min-height: 46px;
+            border: 1px solid #40563b;
+            border-radius: 11px;
+            padding: 0 12px;
+            background: #1a251c;
+            color: #d7e5cd;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .quiz-action-button.primary {
+            border-color: #b7f36b;
+            background: var(--lime);
+            color: #152012;
+        }
+
+        .quiz-action-button:disabled {
+            opacity: 0.48;
+            cursor: not-allowed;
+        }
+
+        .quiz-speech-note {
+            max-width: 360px;
+            margin: 0;
+            color: #82927d;
+            font-size: 10px;
+            line-height: 1.45;
+        }
+
         @media (max-height: 650px) {
             body {
                 padding-top: max(7px, env(safe-area-inset-top));
@@ -741,6 +945,28 @@
 
             .piano-view {
                 gap: 7px;
+            }
+
+            .country-quiz-view {
+                gap: 7px;
+            }
+
+            .quiz-panel {
+                gap: 6px;
+                padding: 8px;
+            }
+
+            .quiz-flag {
+                height: 58px;
+            }
+
+            .quiz-map-container {
+                min-height: 110px;
+                max-height: 24vh;
+            }
+
+            .quiz-speech-note {
+                font-size: 9px;
             }
         }
 
@@ -826,6 +1052,22 @@
                     <span class="game-card-copy">
                         <span class="game-card-title">Water Piano</span>
                         <span class="game-card-description">Play notes on the water</span>
+                    </span>
+                </button>
+                <button class="game-card" type="button" data-open-game="country-quiz">
+                    <span class="game-icon" aria-hidden="true">
+                        <svg viewBox="0 0 120 100" fill="none">
+                            <path d="M22 18h76v64H22z" fill="#e9f1dc" stroke="#71896a" stroke-width="4" rx="8"/>
+                            <path d="M26 27h68v9H26z" fill="#ff806b"/>
+                            <path d="M26 45h68v9H26z" fill="#b7f36b"/>
+                            <path d="M26 63h68v9H26z" fill="#71c3c0"/>
+                            <circle cx="60" cy="50" r="13" fill="#f3cf76" stroke="#101812" stroke-width="4"/>
+                            <path d="m60 42 2.5 5.5 6 .7-4.5 4 1.3 6-5.3-3-5.3 3 1.3-6-4.5-4 6-.7z" fill="#101812"/>
+                        </svg>
+                    </span>
+                    <span class="game-card-copy">
+                        <span class="game-card-title">Flag Quiz</span>
+                        <span class="game-card-description">Flags, countries & capitals</span>
                     </span>
                 </button>
             </div>
@@ -945,6 +1187,38 @@
             </div>
             <p class="piano-hint">Tap or glide to play a melody.<br>Touch several places at once to play chords.</p>
         </section>
+
+        <section class="game-view country-quiz-view" id="countryQuizView" aria-label="World flag quiz">
+            <div class="quiz-stats">
+                <div class="quiz-stat">
+                    <span class="score-label">SCORE</span>
+                    <output class="quiz-stat-value" id="quizScore">0</output>
+                </div>
+                <div class="quiz-stat">
+                    <span class="score-label">CORRECT</span>
+                    <output class="quiz-stat-value" id="quizCorrect">0 / 0</output>
+                </div>
+                <button class="small-button" id="quizRestartButton" type="button" aria-label="Restart quiz">↻</button>
+            </div>
+            <div class="quiz-panel">
+                <div class="quiz-mode-switch" role="group" aria-label="Quiz mode">
+                    <button class="quiz-mode-button active" id="countryModeButton" type="button" aria-pressed="true">NAME COUNTRY</button>
+                    <button class="quiz-mode-button" id="capitalModeButton" type="button" aria-pressed="false">NAME CAPITAL</button>
+                </div>
+                <p class="quiz-progress" id="quizProgress">Loading world map…</p>
+                <div class="quiz-map-container" id="quizMapContainer" role="img" aria-label="World map; the quiz zooms to each country"></div>
+                <svg class="quiz-flag" id="quizFlag" viewBox="0 0 640 480" role="img" aria-label="Country flag">
+                    <use id="quizFlagUse" href="./src/data/flags.svg#flag-af" x="0" y="0" width="640" height="480"></use>
+                </svg>
+                <h2 class="quiz-question" id="quizQuestion">Say the country name</h2>
+                <div class="quiz-feedback" id="quizFeedback" role="status" aria-live="polite"></div>
+                <div class="quiz-action-row">
+                    <button class="quiz-action-button primary" id="quizSpeechButton" type="button">🎙 LISTEN AGAIN</button>
+                    <button class="quiz-action-button" id="quizNextButton" type="button" disabled>SKIP</button>
+                </div>
+                <p class="quiz-speech-note" id="quizSpeechNote">Allow microphone access. Voice recognition support and internet availability depend on your browser.</p>
+            </div>
+        </section>
     </main>
 
     <script>
@@ -1010,6 +1284,37 @@
             const pianoCanvas = document.getElementById('pianoCanvas');
             const pianoContext = pianoCanvas.getContext('2d');
             const pianoSoundButton = document.getElementById('pianoSoundButton');
+            const countryQuizView = document.getElementById('countryQuizView');
+            const quizScoreOutput = document.getElementById('quizScore');
+            const quizCorrectOutput = document.getElementById('quizCorrect');
+            const quizProgress = document.getElementById('quizProgress');
+            const quizMapContainer = document.getElementById('quizMapContainer');
+            const quizFlag = document.getElementById('quizFlag');
+            const quizFlagUse = document.getElementById('quizFlagUse');
+            const quizQuestion = document.getElementById('quizQuestion');
+            const quizFeedback = document.getElementById('quizFeedback');
+            const quizSpeechButton = document.getElementById('quizSpeechButton');
+            const quizNextButton = document.getElementById('quizNextButton');
+            const quizSpeechNote = document.getElementById('quizSpeechNote');
+            const countryModeButton = document.getElementById('countryModeButton');
+            const capitalModeButton = document.getElementById('capitalModeButton');
+            const quizSpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let quizCountries = [];
+            let quizMode = 'country';
+            let quizOrder = [];
+            let quizIndex = 0;
+            let quizCorrect = 0;
+            let quizCompleted = 0;
+            let quizCurrentCountry = null;
+            let quizAnswered = false;
+            let quizStarted = false;
+            let quizRecognition = null;
+            let quizRecognitionActive = false;
+            let quizMapSvg = null;
+            let quizMapLoad = null;
+            let quizMapAnimationCancel = null;
+            let quizQuestionToken = 0;
+            let quizSpeechFailure = '';
             const cubeColors = {
                 '0,1,0': '#f5f4ed',
                 '0,-1,0': '#ffd84a',
@@ -1067,6 +1372,367 @@
             let pianoWidth = 0;
             let pianoHeight = 0;
             let pianoPreviousFrame = 0;
+
+            function normalizeQuizAnswer(value) {
+                return value
+                    .normalize('NFKD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .toLowerCase()
+                    .replace(/&/g, ' and ')
+                    .replace(/[^a-z0-9]/g, '')
+                    .replace(/^the/, '');
+            }
+
+            function getCapitalAnswers(country) {
+                const capitalParts = country.capital.split(/[,\/()[\]]+/);
+                const aliases = Array.isArray(country.capitalAliases) ? country.capitalAliases : [];
+                return [...capitalParts, ...aliases]
+                    .map((answer) => normalizeQuizAnswer(answer.trim()))
+                    .filter(Boolean);
+            }
+
+            function getCountryAnswers(country) {
+                const aliases = Array.isArray(country.aliases) ? country.aliases : [];
+                return [country.name, ...aliases]
+                    .map((answer) => normalizeQuizAnswer(answer))
+                    .filter(Boolean);
+            }
+
+            function setQuizFeedback(message, state = '') {
+                quizFeedback.textContent = message;
+                quizFeedback.className = `quiz-feedback${state ? ` ${state}` : ''}`;
+            }
+
+            function stopQuizRecognition() {
+                if (!quizRecognition) return;
+                const recognition = quizRecognition;
+                quizRecognition = null;
+                quizRecognitionActive = false;
+                recognition.abort();
+            }
+
+            function updateQuizStats() {
+                const score = quizCorrect * 10;
+                quizScoreOutput.value = String(score);
+                quizScoreOutput.textContent = String(score);
+                quizCorrectOutput.value = `${quizCorrect} / ${quizCompleted}`;
+                quizCorrectOutput.textContent = quizCorrectOutput.value;
+            }
+
+            async function loadQuizMap() {
+                if (quizMapSvg) return quizMapSvg;
+                if (quizMapLoad) return quizMapLoad;
+                quizMapLoad = (async () => {
+                    const response = await fetch('./src/data/world-map.svg');
+                    if (!response.ok) throw new Error(`World map request failed (${response.status}).`);
+                    const mapText = await response.text();
+                    const parsedMap = new DOMParser().parseFromString(mapText, 'image/svg+xml');
+                    const mapSvg = parsedMap.documentElement;
+                    if (mapSvg.localName !== 'svg' || parsedMap.querySelector('parsererror')) {
+                        throw new Error('World map asset is invalid.');
+                    }
+                    quizMapSvg = document.importNode(mapSvg, true);
+                    quizMapContainer.replaceChildren(quizMapSvg);
+                    return quizMapSvg;
+                })();
+                try {
+                    return await quizMapLoad;
+                } catch (error) {
+                    quizMapLoad = null;
+                    throw error;
+                }
+            }
+
+            function getOverviewViewBox() {
+                const bounds = quizMapContainer.getBoundingClientRect();
+                const aspect = bounds.width / Math.max(bounds.height, 1);
+                const width = Math.max(360, 180 * aspect);
+                const height = Math.max(180, 360 / aspect);
+                return { x: (360 - width) / 2, y: (180 - height) / 2, width, height };
+            }
+
+            function setQuizMapViewBox(viewBox) {
+                quizMapSvg.setAttribute(
+                    'viewBox',
+                    `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`
+                );
+            }
+
+            function animateQuizMap(viewBox, duration, token) {
+                if (quizMapAnimationCancel) quizMapAnimationCancel();
+                const current = quizMapSvg.viewBox.baseVal;
+                const from = { x: current.x, y: current.y, width: current.width, height: current.height };
+                const start = performance.now();
+                return new Promise((resolve) => {
+                    let frame = 0;
+                    let finished = false;
+                    const finish = () => {
+                        if (finished) return;
+                        finished = true;
+                        if (quizMapAnimationCancel === cancel) quizMapAnimationCancel = null;
+                        resolve();
+                    };
+                    const cancel = () => {
+                        cancelAnimationFrame(frame);
+                        finish();
+                    };
+                    quizMapAnimationCancel = cancel;
+                    const step = (now) => {
+                        if (token !== quizQuestionToken) {
+                            finish();
+                            return;
+                        }
+                        const progress = Math.min(1, (now - start) / duration);
+                        const eased = 1 - ((1 - progress) ** 3);
+                        setQuizMapViewBox({
+                            x: from.x + (viewBox.x - from.x) * eased,
+                            y: from.y + (viewBox.y - from.y) * eased,
+                            width: from.width + (viewBox.width - from.width) * eased,
+                            height: from.height + (viewBox.height - from.height) * eased
+                        });
+                        if (progress === 1) {
+                            finish();
+                            return;
+                        }
+                        frame = requestAnimationFrame(step);
+                    };
+                    frame = requestAnimationFrame(step);
+                });
+            }
+
+            async function flyToQuizCountry(country, token) {
+                await loadQuizMap();
+                if (token !== quizQuestionToken) return false;
+                const overview = getOverviewViewBox();
+                const current = quizMapSvg.viewBox.baseVal;
+                if (current.width < overview.width * 0.9) {
+                    await animateQuizMap(overview, 280, token);
+                } else {
+                    setQuizMapViewBox(overview);
+                }
+                if (token !== quizQuestionToken) return false;
+
+                const marker = quizMapSvg.querySelector('#worldMapMarker');
+                const x = country.longitude + 180;
+                const y = 90 - country.latitude;
+                marker.setAttribute('cx', String(x));
+                marker.setAttribute('cy', String(y));
+                quizMapSvg.querySelector('.quiz-map-country.selected')?.classList.remove('selected');
+                quizMapSvg.querySelector(`#quiz-map-country-${country.code.toLowerCase()}`)?.classList.add('selected');
+
+                const zoom = 4.5;
+                const width = overview.width / zoom;
+                const height = overview.height / zoom;
+                await animateQuizMap({
+                    x: x - width / 2,
+                    y: y - height / 2,
+                    width,
+                    height
+                }, 720, token);
+                return token === quizQuestionToken;
+            }
+
+            async function showQuizQuestion() {
+                const token = ++quizQuestionToken;
+                if (quizMapAnimationCancel) quizMapAnimationCancel();
+                stopQuizRecognition();
+                quizFlag.classList.remove('visible');
+                if (quizIndex >= quizOrder.length) {
+                    quizCurrentCountry = null;
+                    quizQuestion.textContent = 'ALL FLAGS COMPLETE!';
+                    quizProgress.textContent = `${quizCountries.length} FLAGS · ${quizCorrect} CORRECT · ${quizCorrect * 10} POINTS`;
+                    quizNextButton.disabled = false;
+                    quizNextButton.textContent = 'PLAY AGAIN';
+                    setQuizFeedback('Great work! Restart to play again or choose another quiz mode.', 'correct');
+                    try {
+                        await loadQuizMap();
+                        const overview = getOverviewViewBox();
+                        await animateQuizMap(overview, 600, token);
+                    } catch (error) {
+                        console.error('Could not reset the Flag Quiz map:', error);
+                    }
+                    return;
+                }
+
+                quizCurrentCountry = quizCountries[quizOrder[quizIndex]];
+                quizAnswered = false;
+                quizQuestion.textContent = quizMode === 'country' ? 'Say the country name' : 'Say the capital';
+                quizProgress.textContent = `FLAG ${quizIndex + 1} / ${quizCountries.length} · ${quizCorrect} CORRECT`;
+                quizFlagUse.setAttribute('href', `./src/data/flags.svg#flag-${quizCurrentCountry.code.toLowerCase()}`);
+                quizFlag.setAttribute('aria-label', `${quizCurrentCountry.name} flag`);
+                quizNextButton.disabled = false;
+                quizNextButton.textContent = 'SKIP';
+                quizSpeechButton.disabled = !quizSpeechRecognition;
+                quizSpeechButton.textContent = '🎙 LISTEN AGAIN';
+                setQuizFeedback('Finding the country on the map…');
+                try {
+                    const arrived = await flyToQuizCountry(quizCurrentCountry, token);
+                    if (!arrived) return;
+                    quizFlag.classList.add('visible');
+                    if (!quizSpeechRecognition) {
+                        setQuizFeedback('Speech recognition is not supported by this browser.', 'error');
+                        return;
+                    }
+                    listenForQuizAnswer();
+                } catch (error) {
+                    console.error('Could not show the Flag Quiz map:', error);
+                    setQuizFeedback('The map could not be loaded. Reload the app and try again.', 'error');
+                    quizSpeechButton.disabled = true;
+                    quizNextButton.disabled = true;
+                }
+            }
+
+            function finishQuizAnswer(transcripts) {
+                if (!quizCurrentCountry || quizAnswered) return;
+                const acceptedAnswers = quizMode === 'country'
+                    ? getCountryAnswers(quizCurrentCountry)
+                    : getCapitalAnswers(quizCurrentCountry);
+                const heardAnswers = transcripts.map(normalizeQuizAnswer).filter(Boolean);
+                if (!heardAnswers.length) {
+                    setQuizFeedback('I did not catch that. Tap the microphone and try again.', 'error');
+                    return;
+                }
+                const correct = heardAnswers.some((answer) => acceptedAnswers.includes(answer));
+                const spokenAnswer = transcripts[0];
+                quizAnswered = true;
+                stopQuizRecognition();
+                quizCompleted += 1;
+                if (correct) quizCorrect += 1;
+
+                const answerText = quizMode === 'country'
+                    ? quizCurrentCountry.name
+                    : quizCurrentCountry.capital;
+                const detail = quizMode === 'country'
+                    ? `Capital: ${quizCurrentCountry.capital}.`
+                    : `Country: ${quizCurrentCountry.name}.`;
+                const heard = correct ? '' : ` I heard “${spokenAnswer}”.`;
+                setQuizFeedback(
+                    correct ? `Correct! ${answerText}. ${detail}` : `Not quite.${heard} Answer: ${answerText}. ${detail}`,
+                    correct ? 'correct' : 'incorrect'
+                );
+                quizProgress.textContent = `FLAG ${quizIndex + 1} / ${quizCountries.length} · ${quizCorrect} CORRECT`;
+                quizSpeechButton.disabled = true;
+                quizNextButton.textContent = 'NEXT FLAG';
+                updateQuizStats();
+            }
+
+            async function loadQuizCountries() {
+                if (quizCountries.length) return;
+                const response = await fetch('./src/data/countries.json');
+                if (!response.ok) throw new Error(`Country data request failed (${response.status}).`);
+                const countries = await response.json();
+                if (!Array.isArray(countries) || !countries.length ||
+                    countries.some((country) =>
+                        !country || typeof country.name !== 'string' || !country.name.trim() ||
+                        typeof country.capital !== 'string' || !country.capital.trim() ||
+                        typeof country.code !== 'string' || country.code.length !== 2 ||
+                        !Number.isFinite(country.latitude) || !Number.isFinite(country.longitude)
+                    )) {
+                    throw new Error('Country data is missing or has an invalid format.');
+                }
+                quizCountries = countries;
+            }
+
+            async function startCountryQuiz(mode = quizMode) {
+                stopQuizRecognition();
+                if (quizMapAnimationCancel) quizMapAnimationCancel();
+                quizMode = mode;
+                countryModeButton.classList.toggle('active', mode === 'country');
+                countryModeButton.setAttribute('aria-pressed', String(mode === 'country'));
+                capitalModeButton.classList.toggle('active', mode === 'capital');
+                capitalModeButton.setAttribute('aria-pressed', String(mode === 'capital'));
+                quizStarted = true;
+                quizNextButton.disabled = true;
+                quizSpeechButton.disabled = true;
+                quizProgress.textContent = 'Loading world map and flags…';
+                setQuizFeedback('');
+                try {
+                    await Promise.all([loadQuizCountries(), loadQuizMap()]);
+                    quizOrder = quizCountries.map((_, index) => index);
+                    for (let index = quizOrder.length - 1; index > 0; index -= 1) {
+                        const swapIndex = Math.floor(Math.random() * (index + 1));
+                        [quizOrder[index], quizOrder[swapIndex]] = [quizOrder[swapIndex], quizOrder[index]];
+                    }
+                    quizIndex = 0;
+                    quizCorrect = 0;
+                    quizCompleted = 0;
+                    updateQuizStats();
+                    showQuizQuestion();
+                } catch (error) {
+                    console.error('Could not start the Flag Quiz:', error);
+                    quizProgress.textContent = 'Quiz assets could not be loaded.';
+                    setQuizFeedback('Check the app files and reload the page.', 'error');
+                    quizSpeechButton.disabled = true;
+                    quizNextButton.disabled = true;
+                }
+            }
+
+            function initializeQuizSpeech() {
+                if (!quizSpeechRecognition) {
+                    quizSpeechButton.disabled = true;
+                    quizSpeechNote.textContent = 'Speech recognition is not available in this browser.';
+                    return;
+                }
+                quizSpeechNote.textContent = 'Allow microphone access. Speech recognition may require an internet connection.';
+            }
+
+            function listenForQuizAnswer() {
+                if (!quizSpeechRecognition || quizAnswered || !quizCurrentCountry || quizRecognitionActive) return;
+                const recognition = new quizSpeechRecognition();
+                quizRecognition = recognition;
+                quizSpeechFailure = '';
+                recognition.lang = 'en-US';
+                recognition.interimResults = false;
+                recognition.maxAlternatives = 3;
+                recognition.onstart = () => {
+                    if (quizRecognition !== recognition) return;
+                    quizRecognitionActive = true;
+                    quizSpeechButton.textContent = 'LISTENING…';
+                    setQuizFeedback('Listening — say your answer.');
+                };
+                recognition.onresult = (event) => {
+                    if (quizRecognition !== recognition) return;
+                    const result = event.results[0];
+                    if (!result || !result.length) {
+                        setQuizFeedback('I did not catch that. Tap the microphone and try again.', 'error');
+                        return;
+                    }
+                    const transcripts = Array.from(result, (alternative) => alternative.transcript.trim());
+                    finishQuizAnswer(transcripts);
+                };
+                recognition.onerror = (event) => {
+                    if (quizRecognition !== recognition || event.error === 'aborted') return;
+                    const messages = {
+                        'not-allowed': 'Microphone access was denied. Allow it in your browser settings, then try again.',
+                        'service-not-allowed': 'The browser speech service is unavailable.',
+                        'audio-capture': 'No microphone was found.',
+                        'no-speech': 'No speech was heard. Tap the microphone and try again.',
+                        network: 'Speech recognition needs an internet connection.'
+                    };
+                    quizSpeechFailure = messages[event.error] || 'Voice recognition failed. Tap the microphone to try again.';
+                    setQuizFeedback(quizSpeechFailure, 'error');
+                };
+                recognition.onend = () => {
+                    if (quizRecognition !== recognition) return;
+                    quizRecognitionActive = false;
+                    quizRecognition = null;
+                    quizSpeechButton.textContent = '🎙 LISTEN AGAIN';
+                    if (!quizAnswered && !quizSpeechFailure) {
+                        setQuizFeedback('No speech was heard. Tap the microphone and try again.', 'error');
+                    }
+                };
+                quizSpeechButton.disabled = false;
+                quizSpeechButton.textContent = 'LISTENING…';
+                setQuizFeedback('Listening — say your answer.');
+                try {
+                    recognition.start();
+                } catch (error) {
+                    quizRecognition = null;
+                    quizSpeechButton.textContent = '🎙 LISTEN AGAIN';
+                    console.error('Could not start Flag Quiz speech recognition:', error);
+                    setQuizFeedback('Tap the microphone to start speaking.', 'error');
+                }
+            }
 
             function updatePianoSoundButton() {
                 pianoSoundButton.textContent = pianoSoundEnabled ? '🔊' : '🔇';
@@ -2005,11 +2671,15 @@
                     releaseAllPianoPointers();
                     pianoPreviousFrame = 0;
                 }
+                if (countryQuizView.classList.contains('active') && game !== 'country-quiz') {
+                    stopQuizRecognition();
+                }
                 homeView.hidden = game !== null;
                 snakeView.classList.toggle('active', game === 'snake');
                 cubeView.classList.toggle('active', game === 'cube');
                 riverView.classList.toggle('active', game === 'river');
                 pianoView.classList.toggle('active', game === 'water-piano');
+                countryQuizView.classList.toggle('active', game === 'country-quiz');
                 app.classList.toggle('game-mode', game !== null);
                 app.classList.toggle('home-mode', game === null);
 
@@ -2029,6 +2699,11 @@
                 if (game === 'water-piano') {
                     resizePianoCanvas();
                     pianoPreviousFrame = 0;
+                }
+                if (game === 'country-quiz' && !quizStarted) {
+                    startCountryQuiz();
+                } else if (game === 'country-quiz' && quizCurrentCountry && !quizAnswered) {
+                    listenForQuizAnswer();
                 }
             }
 
@@ -2345,6 +3020,31 @@
                 button.addEventListener('click', () => showGame(button.dataset.openGame));
             });
             document.getElementById('homeButton').addEventListener('click', () => showGame(null));
+            quizSpeechButton.addEventListener('click', listenForQuizAnswer);
+            quizNextButton.addEventListener('click', () => {
+                if (quizIndex >= quizOrder.length) {
+                    startCountryQuiz();
+                    return;
+                }
+                if (!quizAnswered) {
+                    stopQuizRecognition();
+                    quizCompleted += 1;
+                    quizAnswered = true;
+                    quizSpeechButton.disabled = true;
+                    setQuizFeedback(
+                        `Skipped. Answer: ${quizMode === 'country' ? quizCurrentCountry.name : quizCurrentCountry.capital}.`,
+                        'incorrect'
+                    );
+                    updateQuizStats();
+                    quizNextButton.textContent = 'NEXT FLAG';
+                    return;
+                }
+                quizIndex += 1;
+                showQuizQuestion();
+            });
+            document.getElementById('quizRestartButton').addEventListener('click', () => startCountryQuiz());
+            countryModeButton.addEventListener('click', () => startCountryQuiz('country'));
+            capitalModeButton.addEventListener('click', () => startCountryQuiz('capital'));
             pianoWater.addEventListener('pointerdown', startPianoPointer);
             pianoWater.addEventListener('pointermove', movePianoPointer);
             pianoWater.addEventListener('pointerup', endPianoPointer);
@@ -2437,6 +3137,7 @@
                 });
             }
 
+            initializeQuizSpeech();
             startGame();
             running = false;
             gameStarted = false;
