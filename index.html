@@ -1709,7 +1709,8 @@
                 } catch (error) {
                     console.error('Could not start the Flag Quiz:', error);
                     quizProgress.textContent = 'Quiz assets could not be loaded.';
-                    setQuizFeedback('Check the app files and reload the page.', 'error');
+                    const reason = error instanceof Error ? error.message : String(error);
+                    setQuizFeedback(`Quiz setup failed: ${reason} Check that src/data/countries.json and src/data/world-map.svg are uploaded beside index.html, then tap restart.`, 'error');
                     quizSpeechButton.disabled = true;
                     quizNextButton.disabled = true;
                 }
