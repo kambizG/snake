@@ -629,6 +629,65 @@
             background-color: #344a37;
         }
 
+        .piano-view {
+            gap: 10px;
+        }
+
+        .piano-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            min-height: 48px;
+        }
+
+        .piano-title {
+            margin: 0;
+            color: #e6f4d7;
+            font-size: 15px;
+            letter-spacing: 0.08em;
+        }
+
+        .piano-octave {
+            color: #a5c9ca;
+            font-size: 10px;
+            letter-spacing: 0.1em;
+        }
+
+        .piano-water {
+            position: relative;
+            min-height: 0;
+            flex: 1;
+            overflow: hidden;
+            border: 2px solid #5b8b8b;
+            border-radius: 22px;
+            background: #12363e;
+            box-shadow: 0 0 0 5px rgba(58, 110, 108, 0.2), 0 18px 50px #090e0a99;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .piano-water canvas {
+            width: 100%;
+            height: 100%;
+            image-rendering: auto;
+        }
+
+        .piano-hint {
+            margin: 0;
+            color: #96b1a9;
+            font-size: 11px;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        .piano-sound-button {
+            min-width: 42px;
+            padding-inline: 8px;
+            color: #aee4df;
+        }
+
         @media (max-height: 650px) {
             body {
                 padding-top: max(7px, env(safe-area-inset-top));
@@ -678,6 +737,10 @@
 
             .river-control-button {
                 min-height: 54px;
+            }
+
+            .piano-view {
+                gap: 7px;
             }
         }
 
@@ -748,6 +811,21 @@
                     <span class="game-card-copy">
                         <span class="game-card-title">River Run</span>
                         <span class="game-card-description">Dodge, shoot, refuel</span>
+                    </span>
+                </button>
+                <button class="game-card" type="button" data-open-game="water-piano">
+                    <span class="game-icon" aria-hidden="true">
+                        <svg viewBox="0 0 120 100" fill="none">
+                            <path d="M4 35c14-13 25 13 39 0s25 13 39 0 24 13 34 0M4 53c14-13 25 13 39 0s25 13 39 0 24 13 34 0M4 71c14-13 25 13 39 0s25 13 39 0 24 13 34 0" stroke="#71c3c0" stroke-width="5" stroke-linecap="round"/>
+                            <circle cx="34" cy="27" r="13" fill="#c8f2df" fill-opacity=".72"/>
+                            <circle cx="34" cy="27" r="6" fill="#287c86"/>
+                            <circle cx="86" cy="22" r="7" fill="#f3cf76"/>
+                            <path d="M86 10v12" stroke="#f3cf76" stroke-width="3"/>
+                        </svg>
+                    </span>
+                    <span class="game-card-copy">
+                        <span class="game-card-title">Water Piano</span>
+                        <span class="game-card-description">Play notes on the water</span>
                     </span>
                 </button>
             </div>
@@ -853,6 +931,20 @@
             </div>
             <p class="cube-hint">Hold left or right to steer. Hold FIRE to shoot.<br>Collect fuel and avoid the riverbanks.</p>
         </section>
+
+        <section class="game-view piano-view" id="pianoView" aria-label="Water Piano">
+            <div class="piano-heading">
+                <div>
+                    <h2 class="piano-title">WATER PIANO</h2>
+                    <span class="piano-octave">TWO OCTAVES · C4 — C6</span>
+                </div>
+                <button class="small-button piano-sound-button" id="pianoSoundButton" type="button" aria-label="Mute piano sound" aria-pressed="true">🔊</button>
+            </div>
+            <div class="piano-water" id="pianoWater" aria-label="Water piano playing surface">
+                <canvas id="pianoCanvas" aria-label="Touch different parts of the water to play notes. Use multiple fingers to play chords."></canvas>
+            </div>
+            <p class="piano-hint">Tap or glide to play a melody.<br>Touch several places at once to play chords.</p>
+        </section>
     </main>
 
     <script>
@@ -913,6 +1005,11 @@
             const riverOverlayButton = document.getElementById('riverOverlayButton');
             const riverPauseButton = document.getElementById('riverPauseButton');
             const riverSoundButton = document.getElementById('riverSoundButton');
+            const pianoView = document.getElementById('pianoView');
+            const pianoWater = document.getElementById('pianoWater');
+            const pianoCanvas = document.getElementById('pianoCanvas');
+            const pianoContext = pianoCanvas.getContext('2d');
+            const pianoSoundButton = document.getElementById('pianoSoundButton');
             const cubeColors = {
                 '0,1,0': '#f5f4ed',
                 '0,-1,0': '#ffd84a',
@@ -959,6 +1056,283 @@
             let riverAmbientGain = null;
             let riverEngineGain = null;
             const riverInput = { left: false, right: false, fire: false };
+            const pianoWhiteNotes = [0, 2, 4, 5, 7, 9, 11];
+            const pianoNoteNames = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+            const pianoBlackAfter = new Set([0, 1, 3, 4, 5]);
+            const pianoActivePointers = new Map();
+            const pianoRipples = [];
+            let pianoAudioContext = null;
+            let pianoMasterGain = null;
+            let pianoSoundEnabled = true;
+            let pianoWidth = 0;
+            let pianoHeight = 0;
+            let pianoPreviousFrame = 0;
+
+            function updatePianoSoundButton() {
+                pianoSoundButton.textContent = pianoSoundEnabled ? '🔊' : '🔇';
+                pianoSoundButton.setAttribute('aria-pressed', String(pianoSoundEnabled));
+                pianoSoundButton.setAttribute(
+                    'aria-label',
+                    pianoSoundEnabled ? 'Mute piano sound' : 'Enable piano sound'
+                );
+            }
+
+            function setPianoVolume() {
+                if (!pianoAudioContext || !pianoMasterGain) return;
+                pianoMasterGain.gain.cancelScheduledValues(pianoAudioContext.currentTime);
+                pianoMasterGain.gain.setTargetAtTime(
+                    pianoSoundEnabled ? 0.42 : 0,
+                    pianoAudioContext.currentTime,
+                    0.035
+                );
+            }
+
+            function initializePianoAudio() {
+                if (pianoAudioContext || !pianoSoundEnabled) return;
+                const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextConstructor) {
+                    pianoSoundEnabled = false;
+                    updatePianoSoundButton();
+                    console.error('Web Audio is not supported in this browser.');
+                    return;
+                }
+                try {
+                    pianoAudioContext = new AudioContextConstructor();
+                    pianoMasterGain = pianoAudioContext.createGain();
+                    pianoMasterGain.gain.value = 0.42;
+                    pianoMasterGain.connect(pianoAudioContext.destination);
+                } catch (error) {
+                    console.error('Could not initialize Water Piano audio:', error);
+                    pianoSoundEnabled = false;
+                    updatePianoSoundButton();
+                }
+            }
+
+            function playPianoNote(midiNote) {
+                if (!pianoSoundEnabled || !pianoAudioContext || !pianoMasterGain) return null;
+                if (pianoAudioContext.state !== 'running') {
+                    pianoAudioContext.resume().catch((error) => {
+                        console.error('Could not resume Water Piano audio:', error);
+                    });
+                }
+                const now = pianoAudioContext.currentTime;
+                const fundamental = 440 * (2 ** ((midiNote - 69) / 12));
+                const voiceGain = pianoAudioContext.createGain();
+                voiceGain.gain.setValueAtTime(0.0001, now);
+                voiceGain.gain.exponentialRampToValueAtTime(0.2, now + 0.012);
+                voiceGain.gain.exponentialRampToValueAtTime(0.045, now + 0.42);
+                voiceGain.connect(pianoMasterGain);
+
+                const partials = [
+                    { ratio: 1, level: 0.62, type: 'triangle' },
+                    { ratio: 2, level: 0.22, type: 'sine' },
+                    { ratio: 3, level: 0.1, type: 'sine' },
+                    { ratio: 4, level: 0.045, type: 'sine' }
+                ];
+                const oscillators = partials.map((partial) => {
+                    const oscillator = pianoAudioContext.createOscillator();
+                    const partialGain = pianoAudioContext.createGain();
+                    oscillator.type = partial.type;
+                    oscillator.frequency.setValueAtTime(fundamental * partial.ratio, now);
+                    partialGain.gain.value = partial.level;
+                    oscillator.connect(partialGain);
+                    partialGain.connect(voiceGain);
+                    oscillator.start(now);
+                    return oscillator;
+                });
+                return { gain: voiceGain, oscillators };
+            }
+
+            function releasePianoVoice(voice) {
+                if (!voice || !pianoAudioContext) return;
+                const now = pianoAudioContext.currentTime;
+                voice.gain.gain.cancelScheduledValues(now);
+                voice.gain.gain.setTargetAtTime(0.0001, now, 0.055);
+                voice.oscillators.forEach((oscillator) => oscillator.stop(now + 0.32));
+            }
+
+            function pianoNoteAt(clientX, clientY) {
+                const bounds = pianoWater.getBoundingClientRect();
+                const x = Math.max(0, Math.min(bounds.width - 0.01, clientX - bounds.left));
+                const y = Math.max(0, Math.min(bounds.height, clientY - bounds.top));
+                const whiteKeyWidth = bounds.width / 15;
+                const keyIndex = Math.min(14, Math.floor(x / whiteKeyWidth));
+                const withinKey = (x - keyIndex * whiteKeyWidth) / whiteKeyWidth;
+                const octave = Math.floor(keyIndex / 7);
+                const whiteDegree = keyIndex % 7;
+                const whiteMidi = 60 + octave * 12 + pianoWhiteNotes[whiteDegree];
+                const blackKeyTouch = keyIndex < 14 &&
+                    pianoBlackAfter.has(whiteDegree) &&
+                    withinKey > 0.7 &&
+                    y < bounds.height * 0.58;
+                return blackKeyTouch ? whiteMidi + 1 : whiteMidi;
+            }
+
+            function startPianoPointer(event) {
+                event.preventDefault();
+                initializePianoAudio();
+                const midiNote = pianoNoteAt(event.clientX, event.clientY);
+                const bounds = pianoWater.getBoundingClientRect();
+                const lastPosition = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+                const voice = playPianoNote(midiNote);
+                pianoActivePointers.set(event.pointerId, { midiNote, voice, lastPosition });
+                pianoRipples.push({
+                    ...lastPosition,
+                    age: 0,
+                    midiNote
+                });
+                pianoWater.setPointerCapture(event.pointerId);
+                drawPiano();
+            }
+
+            function movePianoPointer(event) {
+                const active = pianoActivePointers.get(event.pointerId);
+                if (!active) return;
+                const midiNote = pianoNoteAt(event.clientX, event.clientY);
+                if (midiNote === active.midiNote) return;
+                releasePianoVoice(active.voice);
+                active.midiNote = midiNote;
+                active.voice = playPianoNote(midiNote);
+                const bounds = pianoWater.getBoundingClientRect();
+                active.lastPosition = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+                pianoRipples.push({
+                    ...active.lastPosition,
+                    age: 0,
+                    midiNote
+                });
+                drawPiano();
+            }
+
+            function endPianoPointer(event) {
+                const active = pianoActivePointers.get(event.pointerId);
+                if (!active) return;
+                releasePianoVoice(active.voice);
+                pianoActivePointers.delete(event.pointerId);
+            }
+
+            function releaseAllPianoPointers() {
+                pianoActivePointers.forEach((active) => releasePianoVoice(active.voice));
+                pianoActivePointers.clear();
+            }
+
+            function togglePianoSound() {
+                pianoSoundEnabled = !pianoSoundEnabled;
+                updatePianoSoundButton();
+                if (pianoSoundEnabled) {
+                    initializePianoAudio();
+                    if (pianoAudioContext) {
+                        pianoAudioContext.resume()
+                            .then(setPianoVolume)
+                            .catch((error) => console.error('Could not resume Water Piano audio:', error));
+                    }
+                } else {
+                    releaseAllPianoPointers();
+                    setPianoVolume();
+                }
+            }
+
+            function resizePianoCanvas() {
+                const bounds = pianoWater.getBoundingClientRect();
+                if (!bounds.width || !bounds.height) return;
+                const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+                pianoWidth = bounds.width;
+                pianoHeight = bounds.height;
+                pianoCanvas.width = Math.round(pianoWidth * pixelRatio);
+                pianoCanvas.height = Math.round(pianoHeight * pixelRatio);
+                pianoContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+                drawPiano();
+            }
+
+            function drawPiano(deltaSeconds = 0) {
+                if (!pianoWidth || !pianoHeight) return;
+                const ctx = pianoContext;
+                const background = ctx.createLinearGradient(0, 0, pianoWidth, pianoHeight);
+                background.addColorStop(0, '#15434b');
+                background.addColorStop(0.55, '#1e6870');
+                background.addColorStop(1, '#123740');
+                ctx.fillStyle = background;
+                ctx.fillRect(0, 0, pianoWidth, pianoHeight);
+
+                const glow = ctx.createRadialGradient(
+                    pianoWidth * 0.52,
+                    pianoHeight * 0.36,
+                    0,
+                    pianoWidth * 0.52,
+                    pianoHeight * 0.36,
+                    Math.max(pianoWidth, pianoHeight) * 0.8
+                );
+                glow.addColorStop(0, 'rgba(177, 235, 219, 0.12)');
+                glow.addColorStop(1, 'rgba(16, 43, 53, 0)');
+                ctx.fillStyle = glow;
+                ctx.fillRect(0, 0, pianoWidth, pianoHeight);
+
+                const whiteKeyWidth = pianoWidth / 15;
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(212, 244, 227, 0.15)';
+                for (let index = 1; index < 15; index += 1) {
+                    const x = index * whiteKeyWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, pianoHeight);
+                    ctx.stroke();
+                }
+
+                ctx.fillStyle = 'rgba(10, 36, 44, 0.28)';
+                for (let index = 0; index < 14; index += 1) {
+                    if (!pianoBlackAfter.has(index % 7)) continue;
+                    const x = (index + 1) * whiteKeyWidth;
+                    ctx.beginPath();
+                    ctx.roundRect(x - whiteKeyWidth * 0.18, 0, whiteKeyWidth * 0.36, pianoHeight * 0.58, 8);
+                    ctx.fill();
+                }
+
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.font = '11px ui-monospace, monospace';
+                for (let index = 0; index < 15; index += 1) {
+                    const midi = 60 + Math.floor(index / 7) * 12 + pianoWhiteNotes[index % 7];
+                    const label = `${pianoNoteNames[midi % 12]}${Math.floor(midi / 12) - 1}`;
+                    ctx.fillStyle = 'rgba(222, 247, 232, 0.52)';
+                    ctx.fillText(label, (index + 0.5) * whiteKeyWidth, pianoHeight - 14);
+                }
+
+                pianoRipples.forEach((ripple) => {
+                    ripple.age += deltaSeconds;
+                    const progress = Math.min(1, ripple.age / 1.15);
+                    const radius = 8 + progress * Math.min(pianoWidth, pianoHeight) * 0.16;
+                    const alpha = (1 - progress) * 0.55;
+                    ctx.strokeStyle = `rgba(218, 249, 235, ${alpha})`;
+                    ctx.lineWidth = Math.max(1, 3 - progress * 2);
+                    for (let ring = 0; ring < 3; ring += 1) {
+                        ctx.beginPath();
+                        ctx.ellipse(
+                            ripple.x,
+                            ripple.y,
+                            radius + ring * 9,
+                            (radius + ring * 9) * 0.38,
+                            0,
+                            0,
+                            Math.PI * 2
+                        );
+                        ctx.stroke();
+                    }
+                    ctx.fillStyle = `rgba(244, 255, 242, ${alpha * 0.85})`;
+                    ctx.beginPath();
+                    ctx.arc(ripple.x, ripple.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                while (pianoRipples.length && pianoRipples[0].age >= 1.15) pianoRipples.shift();
+
+                pianoActivePointers.forEach((active) => {
+                    if (!active.lastPosition) return;
+                    ctx.fillStyle = 'rgba(240, 255, 241, 0.82)';
+                    ctx.font = 'bold 12px ui-monospace, monospace';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const label = `${pianoNoteNames[active.midiNote % 12]}${Math.floor(active.midiNote / 12) - 1}`;
+                    ctx.fillText(label, active.lastPosition.x, active.lastPosition.y - 22);
+                });
+            }
 
             function updateRiverSoundButton() {
                 riverSoundButton.textContent = riverSoundEnabled ? '🔊' : '🔇';
@@ -1587,10 +1961,15 @@
                 if (riverView.classList.contains('active') && game !== 'river' && riverRunning) {
                     pauseRiverRun(true);
                 }
+                if (pianoView.classList.contains('active') && game !== 'water-piano') {
+                    releaseAllPianoPointers();
+                    pianoPreviousFrame = 0;
+                }
                 homeView.hidden = game !== null;
                 snakeView.classList.toggle('active', game === 'snake');
                 cubeView.classList.toggle('active', game === 'cube');
                 riverView.classList.toggle('active', game === 'river');
+                pianoView.classList.toggle('active', game === 'water-piano');
                 app.classList.toggle('game-mode', game !== null);
                 app.classList.toggle('home-mode', game === null);
 
@@ -1606,6 +1985,10 @@
                 if (game === 'river') {
                     resizeRiverCanvas();
                     if (riverPausedForNav) startRiverRun();
+                }
+                if (game === 'water-piano') {
+                    resizePianoCanvas();
+                    pianoPreviousFrame = 0;
                 }
             }
 
@@ -1831,6 +2214,13 @@
                     updateRiver(deltaSeconds);
                     drawRiver();
                 }
+                if (pianoView.classList.contains('active')) {
+                    const deltaSeconds = pianoPreviousFrame
+                        ? Math.min((timestamp - pianoPreviousFrame) / 1000, 0.05)
+                        : 0;
+                    pianoPreviousFrame = timestamp;
+                    drawPiano(deltaSeconds);
+                }
                 previousFrame = timestamp;
                 window.requestAnimationFrame(frame);
             }
@@ -1915,6 +2305,12 @@
                 button.addEventListener('click', () => showGame(button.dataset.openGame));
             });
             document.getElementById('homeButton').addEventListener('click', () => showGame(null));
+            pianoWater.addEventListener('pointerdown', startPianoPointer);
+            pianoWater.addEventListener('pointermove', movePianoPointer);
+            pianoWater.addEventListener('pointerup', endPianoPointer);
+            pianoWater.addEventListener('pointercancel', endPianoPointer);
+            pianoWater.addEventListener('lostpointercapture', endPianoPointer);
+            pianoSoundButton.addEventListener('click', togglePianoSound);
             document.querySelectorAll('.cube-turn-button').forEach((button) => {
                 button.addEventListener('click', () => turnCubeFace(button.dataset.face));
             });
@@ -1979,6 +2375,7 @@
                 resizeCanvas();
                 renderCube();
                 resizeRiverCanvas();
+                resizePianoCanvas();
             });
             window.addEventListener('beforeinstallprompt', (event) => {
                 event.preventDefault();
@@ -2012,6 +2409,8 @@
             resizeCanvas();
             updateRiverSoundButton();
             resetRiverRun();
+            updatePianoSoundButton();
+            resizePianoCanvas();
             window.setInterval(updateCubeTime, 250);
             window.requestAnimationFrame(frame);
         })();
