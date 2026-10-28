@@ -1450,7 +1450,7 @@
             let movieNames = [];
             let movieSubtitleUrl = null;
             let movieLoadToken = 0;
-            const movieExtensions = new Set(['mp4', 'm4v', 'mov', 'webm', 'ogv', 'ogg']);
+            const movieExtensions = new Set(['mp4', 'm4v', 'mov', 'mkv', 'webm', 'ogv', 'ogg']);
             const cubeColors = {
                 '0,1,0': '#f5f4ed',
                 '0,-1,0': '#ffd84a',
@@ -3179,7 +3179,7 @@
                     if (!movieNames.length) {
                         setMoviesStatus(failedDirectories.length
                             ? `No movies found. Could not read ${failedDirectories.length} subfolder(s). Check Nginx folder permissions.`
-                            : 'No supported movie files found (MP4, M4V, MOV, WebM, OGV).');
+                            : 'No supported movie files found (MP4, M4V, MOV, MKV, WebM, OGV).');
                         moviesLoaded = true;
                         return;
                     }
@@ -3274,13 +3274,19 @@
                     if (token !== movieLoadToken) return;
                     await moviesPlayer.play();
                     setMoviesStatus(
-                        `Playing: ${path}${movieSubtitleUrl ? ' · subtitles on' : subtitleWarning}`
+                        `Playing: ${path}${movieSubtitleUrl ? ' · subtitles on' : subtitleWarning}` +
+                        (path.toLowerCase().endsWith('.mkv')
+                            ? ' · MKV playback depends on browser and video codec support'
+                            : '')
                     );
                 } catch (error) {
                     if (token === movieLoadToken) {
                         console.error('Could not play the selected movie:', error);
                         setMoviesStatus(
-                            `Could not play ${path}: ${error instanceof Error ? error.message : String(error)} Check that Safari supports this video format.`,
+                            `Could not play ${path}: ${error instanceof Error ? error.message : String(error)} ` +
+                            (path.toLowerCase().endsWith('.mkv')
+                                ? 'This browser may not support MKV or its codec; convert it to MP4 (H.264/AAC) for iPhone playback.'
+                                : 'Check that Safari supports this video format.'),
                             true
                         );
                     }
