@@ -1213,10 +1213,10 @@
                 <h2 class="quiz-question" id="quizQuestion">Say the country name</h2>
                 <div class="quiz-feedback" id="quizFeedback" role="status" aria-live="polite"></div>
                 <div class="quiz-action-row">
-                    <button class="quiz-action-button primary" id="quizSpeechButton" type="button">🎙 LISTEN AGAIN</button>
+                    <button class="quiz-action-button primary" id="quizSpeechButton" type="button">LOAD VOICE MODEL (~52 MB)</button>
                     <button class="quiz-action-button" id="quizNextButton" type="button" disabled>SKIP</button>
                 </div>
-                <p class="quiz-speech-note" id="quizSpeechNote">Allow microphone access. Voice recognition support and internet availability depend on your browser.</p>
+                <p class="quiz-speech-note" id="quizSpeechNote">Downloads about 52 MB once. Speech is processed on-device and cached for later use.</p>
             </div>
         </section>
     </main>
@@ -1298,7 +1298,6 @@
             const quizSpeechNote = document.getElementById('quizSpeechNote');
             const countryModeButton = document.getElementById('countryModeButton');
             const capitalModeButton = document.getElementById('capitalModeButton');
-            const quizSpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             let quizCountries = [];
             let quizMode = 'country';
             let quizOrder = [];
@@ -1308,13 +1307,26 @@
             let quizCurrentCountry = null;
             let quizAnswered = false;
             let quizStarted = false;
-            let quizRecognition = null;
-            let quizRecognitionActive = false;
+            let quizAsrWorker = null;
+            let quizAsrLoadPromise = null;
+            let quizAsrResolve = null;
+            let quizAsrReject = null;
+            let quizAsrReady = false;
+            let quizAsrLoading = false;
+            let quizSpeechSupported = false;
+            let quizAudioContext = null;
+            let quizAudioSource = null;
+            let quizAudioProcessor = null;
+            let quizMediaStream = null;
+            let quizAudioChunks = [];
+            let quizRecordingToken = 0;
+            let quizRecordingTimer = 0;
+            let quizCancelRecording = null;
+            let quizTranscribing = false;
             let quizMapSvg = null;
             let quizMapLoad = null;
             let quizMapAnimationCancel = null;
             let quizQuestionToken = 0;
-            let quizSpeechFailure = '';
             const cubeColors = {
                 '0,1,0': '#f5f4ed',
                 '0,-1,0': '#ffd84a',
@@ -1404,11 +1416,30 @@
             }
 
             function stopQuizRecognition() {
-                if (!quizRecognition) return;
-                const recognition = quizRecognition;
-                quizRecognition = null;
-                quizRecognitionActive = false;
-                recognition.abort();
+                if (quizRecordingTimer) {
+                    window.clearTimeout(quizRecordingTimer);
+                    quizRecordingTimer = 0;
+                }
+                if (quizCancelRecording) {
+                    const cancel = quizCancelRecording;
+                    quizCancelRecording = null;
+                    cancel();
+                }
+                quizAudioSource?.disconnect();
+                quizAudioProcessor?.disconnect();
+                if (quizMediaStream) {
+                    quizMediaStream.getTracks().forEach((track) => track.stop());
+                    quizMediaStream = null;
+                }
+                if (quizAudioContext && quizAudioContext.state !== 'closed') {
+                    quizAudioContext.close().catch((error) => {
+                        console.error('Could not close the quiz microphone audio context:', error);
+                    });
+                }
+                quizAudioContext = null;
+                quizAudioSource = null;
+                quizAudioProcessor = null;
+                quizAudioChunks = [];
             }
 
             function updateQuizStats() {
@@ -1541,6 +1572,7 @@
                     quizCurrentCountry = null;
                     quizQuestion.textContent = 'ALL FLAGS COMPLETE!';
                     quizProgress.textContent = `${quizCountries.length} FLAGS · ${quizCorrect} CORRECT · ${quizCorrect * 10} POINTS`;
+                    quizSpeechButton.disabled = true;
                     quizNextButton.disabled = false;
                     quizNextButton.textContent = 'PLAY AGAIN';
                     setQuizFeedback('Great work! Restart to play again or choose another quiz mode.', 'correct');
@@ -1562,18 +1594,18 @@
                 quizFlag.setAttribute('aria-label', `${quizCurrentCountry.name} flag`);
                 quizNextButton.disabled = false;
                 quizNextButton.textContent = 'SKIP';
-                quizSpeechButton.disabled = !quizSpeechRecognition;
-                quizSpeechButton.textContent = '🎙 LISTEN AGAIN';
+                quizSpeechButton.disabled = !quizSpeechSupported;
+                quizSpeechButton.textContent = quizAsrReady ? '🎙 SPEAK ANSWER' : 'LOAD VOICE MODEL (~52 MB)';
                 setQuizFeedback('Finding the country on the map…');
                 try {
                     const arrived = await flyToQuizCountry(quizCurrentCountry, token);
                     if (!arrived) return;
                     quizFlag.classList.add('visible');
-                    if (!quizSpeechRecognition) {
-                        setQuizFeedback('Speech recognition is not supported by this browser.', 'error');
-                        return;
-                    }
-                    listenForQuizAnswer();
+                    setQuizFeedback(
+                        quizAsrReady
+                            ? 'Tap the microphone and say your answer.'
+                            : 'Download the voice model once. Your speech stays on this device.'
+                    );
                 } catch (error) {
                     console.error('Could not show the Flag Quiz map:', error);
                     setQuizFeedback('The map could not be loaded. Reload the app and try again.', 'error');
@@ -1612,6 +1644,7 @@
                 );
                 quizProgress.textContent = `FLAG ${quizIndex + 1} / ${quizCountries.length} · ${quizCorrect} CORRECT`;
                 quizSpeechButton.disabled = true;
+                quizSpeechButton.textContent = 'ANSWER RECORDED';
                 quizNextButton.textContent = 'NEXT FLAG';
                 updateQuizStats();
             }
@@ -1668,69 +1701,265 @@
             }
 
             function initializeQuizSpeech() {
-                if (!quizSpeechRecognition) {
+                const hasAudioContext = window.AudioContext || window.webkitAudioContext;
+                const hasOfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+                const supported = window.isSecureContext &&
+                    navigator.mediaDevices?.getUserMedia &&
+                    hasAudioContext &&
+                    typeof hasAudioContext.prototype.createScriptProcessor === 'function' &&
+                    hasOfflineAudioContext &&
+                    window.Worker &&
+                    window.WebAssembly &&
+                    window.caches;
+                quizSpeechSupported = Boolean(supported);
+                if (!supported) {
                     quizSpeechButton.disabled = true;
-                    quizSpeechNote.textContent = 'Speech recognition is not available in this browser.';
+                    quizSpeechNote.textContent = 'On-device voice answers need HTTPS, microphone recording, and browser support for audio and WebAssembly.';
                     return;
                 }
-                quizSpeechNote.textContent = 'Allow microphone access. Speech recognition may require an internet connection.';
+                quizSpeechNote.textContent = 'Downloads about 52 MB once. Speech is processed on-device and cached for later use.';
             }
 
-            function listenForQuizAnswer() {
-                if (!quizSpeechRecognition || quizAnswered || !quizCurrentCountry || quizRecognitionActive) return;
-                const recognition = new quizSpeechRecognition();
-                quizRecognition = recognition;
-                quizSpeechFailure = '';
-                recognition.lang = 'en-US';
-                recognition.interimResults = false;
-                recognition.maxAlternatives = 3;
-                recognition.onstart = () => {
-                    if (quizRecognition !== recognition) return;
-                    quizRecognitionActive = true;
-                    quizSpeechButton.textContent = 'LISTENING…';
-                    setQuizFeedback('Listening — say your answer.');
-                };
-                recognition.onresult = (event) => {
-                    if (quizRecognition !== recognition) return;
-                    const result = event.results[0];
-                    if (!result || !result.length) {
-                        setQuizFeedback('I did not catch that. Tap the microphone and try again.', 'error');
+            function handleQuizAsrMessage(event) {
+                const message = event.data;
+                if (message.type === 'progress') {
+                    const progress = message.progress;
+                    const file = progress.file?.split('/').pop() || 'speech model';
+                    if (progress.status === 'progress' && Number.isFinite(progress.progress)) {
+                        const percent = Math.round(progress.progress);
+                        quizSpeechButton.textContent = `DOWNLOADING ${percent}%`;
+                        setQuizFeedback(`Preparing on-device speech model: ${file} (${percent}%).`);
+                    } else {
+                        quizSpeechButton.textContent = 'LOADING VOICE MODEL…';
+                        setQuizFeedback(`Preparing on-device speech model: ${file}.`);
+                    }
+                    return;
+                }
+                if (message.type === 'ready') {
+                    quizAsrReady = true;
+                    quizAsrLoading = false;
+                    quizSpeechButton.disabled = !countryQuizView.classList.contains('active') || quizAnswered;
+                    quizSpeechButton.textContent = quizAnswered ? 'ANSWER RECORDED' : '🎙 SPEAK ANSWER';
+                    quizSpeechNote.textContent = 'Voice processing stays on this device. The model is cached; Safari may clear it if storage is low.';
+                    setQuizFeedback('Voice model ready. Tap the microphone and say your answer.');
+                    if (quizAsrResolve) quizAsrResolve();
+                    quizAsrResolve = null;
+                    quizAsrReject = null;
+                    return;
+                }
+                if (message.type === 'result') {
+                    quizTranscribing = false;
+                    if (message.token !== quizQuestionToken || quizAnswered) return;
+                    if (!message.text) {
+                        quizSpeechButton.disabled = false;
+                        quizSpeechButton.textContent = '🎙 TRY AGAIN';
+                        setQuizFeedback('No answer was heard. Tap to speak again.', 'error');
                         return;
                     }
-                    const transcripts = Array.from(result, (alternative) => alternative.transcript.trim());
-                    finishQuizAnswer(transcripts);
-                };
-                recognition.onerror = (event) => {
-                    if (quizRecognition !== recognition || event.error === 'aborted') return;
-                    const messages = {
-                        'not-allowed': 'Microphone access was denied. Allow it in your browser settings, then try again.',
-                        'service-not-allowed': 'The browser speech service is unavailable.',
-                        'audio-capture': 'No microphone was found.',
-                        'no-speech': 'No speech was heard. Tap the microphone and try again.',
-                        network: 'Speech recognition needs an internet connection.'
-                    };
-                    quizSpeechFailure = messages[event.error] || 'Voice recognition failed. Tap the microphone to try again.';
-                    setQuizFeedback(quizSpeechFailure, 'error');
-                };
-                recognition.onend = () => {
-                    if (quizRecognition !== recognition) return;
-                    quizRecognitionActive = false;
-                    quizRecognition = null;
-                    quizSpeechButton.textContent = '🎙 LISTEN AGAIN';
-                    if (!quizAnswered && !quizSpeechFailure) {
-                        setQuizFeedback('No speech was heard. Tap the microphone and try again.', 'error');
+                    finishQuizAnswer([message.text]);
+                    return;
+                }
+                if (message.type === 'error') {
+                    if (quizAsrLoading) {
+                        quizAsrLoading = false;
+                        quizAsrLoadPromise = null;
+                        quizSpeechButton.disabled = false;
+                        quizSpeechButton.textContent = 'RETRY MODEL DOWNLOAD';
+                        quizSpeechNote.textContent = 'Model download failed. Check your connection or device storage, then retry.';
+                        setQuizFeedback(`Could not load the on-device speech model: ${message.message}`, 'error');
+                        if (quizAsrReject) quizAsrReject(new Error(message.message));
+                        quizAsrResolve = null;
+                        quizAsrReject = null;
+                        quizAsrWorker?.terminate();
+                        quizAsrWorker = null;
+                    } else {
+                        quizTranscribing = false;
+                        if (message.token !== quizQuestionToken) return;
+                        quizSpeechButton.disabled = false;
+                        quizSpeechButton.textContent = '🎙 TRY AGAIN';
+                        setQuizFeedback(`On-device speech recognition failed: ${message.message}`, 'error');
                     }
-                };
-                quizSpeechButton.disabled = false;
-                quizSpeechButton.textContent = 'LISTENING…';
-                setQuizFeedback('Listening — say your answer.');
+                }
+            }
+
+            function ensureQuizAsrModel() {
+                if (quizAsrReady) return Promise.resolve();
+                if (quizAsrLoadPromise) return quizAsrLoadPromise;
+
+                quizAsrLoading = true;
+                quizSpeechButton.disabled = true;
+                quizSpeechButton.textContent = 'LOADING VOICE MODEL…';
+                quizSpeechNote.textContent = 'Downloading about 52 MB on first use; your microphone audio is never uploaded.';
+                setQuizFeedback('Loading the local speech model. This may take a few minutes the first time.');
+                quizAsrLoadPromise = new Promise((resolve, reject) => {
+                    quizAsrResolve = resolve;
+                    quizAsrReject = reject;
+                    try {
+                        if (!quizAsrWorker) {
+                            quizAsrWorker = new Worker('./src/data/asr/asr-worker.js?v=3', { type: 'module' });
+                            quizAsrWorker.onmessage = handleQuizAsrMessage;
+                            quizAsrWorker.onerror = (event) => {
+                                console.error('On-device speech worker failed:', event.message);
+                                handleQuizAsrMessage({
+                                    data: { type: 'error', message: event.message || 'Speech worker could not start.' }
+                                });
+                            };
+                        }
+                        quizAsrWorker.postMessage({ type: 'load' });
+                    } catch (error) {
+                        quizAsrLoading = false;
+                        quizSpeechButton.disabled = false;
+                        quizSpeechButton.textContent = 'RETRY MODEL DOWNLOAD';
+                        setQuizFeedback(`Could not start the on-device speech model: ${error.message}`, 'error');
+                        quizAsrWorker?.terminate();
+                        quizAsrWorker = null;
+                        reject(error);
+                    }
+                });
+                quizAsrLoadPromise.catch(() => {
+                    if (!quizAsrReady) quizAsrLoadPromise = null;
+                });
+                return quizAsrLoadPromise;
+            }
+
+            async function transcribeQuizRecording(recordedSamples, sampleRate, token) {
+                const OfflineAudioContextConstructor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
                 try {
-                    recognition.start();
+                    const sampleCount = Math.ceil(recordedSamples.length * 16000 / sampleRate);
+                    const offlineContext = new OfflineAudioContextConstructor(1, sampleCount, 16000);
+                    const audioBuffer = offlineContext.createBuffer(1, recordedSamples.length, sampleRate);
+                    audioBuffer.copyToChannel(recordedSamples, 0);
+                    const source = offlineContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(offlineContext.destination);
+                    source.start();
+                    const resampled = await offlineContext.startRendering();
+                    const samples = resampled.getChannelData(0).slice();
+                    if (!quizAsrWorker || token !== quizQuestionToken) return;
+                    quizTranscribing = true;
+                    quizSpeechButton.disabled = true;
+                    quizSpeechButton.textContent = 'CHECKING ANSWER…';
+                    setQuizFeedback('Checking your spoken answer on this device…');
+                    quizAsrWorker.postMessage(
+                        { type: 'transcribe', token, audio: samples.buffer },
+                        [samples.buffer]
+                    );
                 } catch (error) {
-                    quizRecognition = null;
-                    quizSpeechButton.textContent = '🎙 LISTEN AGAIN';
-                    console.error('Could not start Flag Quiz speech recognition:', error);
-                    setQuizFeedback('Tap the microphone to start speaking.', 'error');
+                    quizTranscribing = false;
+                    console.error('Could not process recorded quiz speech:', error);
+                    quizSpeechButton.disabled = false;
+                    quizSpeechButton.textContent = '🎙 TRY AGAIN';
+                    setQuizFeedback('Could not process that recording. Tap to try again.', 'error');
+                }
+            }
+
+            async function recordQuizAnswer() {
+                if (quizAnswered || !quizCurrentCountry || quizTranscribing || quizAsrLoading) return;
+                if (!quizAsrReady) {
+                    try {
+                        await ensureQuizAsrModel();
+                    } catch (error) {
+                        console.error('On-device speech model is unavailable:', error);
+                    }
+                    return;
+                }
+                if (quizCancelRecording) {
+                    quizCancelRecording(false);
+                    return;
+                }
+
+                quizSpeechButton.disabled = true;
+                quizSpeechButton.textContent = 'REQUESTING MICROPHONE…';
+                let stream = null;
+                let audioContext = null;
+                try {
+                    const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+                    audioContext = new AudioContextConstructor();
+                    const resumePromise = audioContext.resume();
+                    const streamPromise = navigator.mediaDevices.getUserMedia({
+                        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
+                    });
+                    const [streamResult, resumeResult] = await Promise.allSettled([streamPromise, resumePromise]);
+                    if (streamResult.status === 'fulfilled') stream = streamResult.value;
+                    if (streamResult.status === 'rejected') throw streamResult.reason;
+                    if (resumeResult.status === 'rejected') throw resumeResult.reason;
+                    if (quizAnswered || !quizCurrentCountry || !countryQuizView.classList.contains('active')) {
+                        stream.getTracks().forEach((track) => track.stop());
+                        await audioContext.close();
+                        return;
+                    }
+                    const token = quizQuestionToken;
+                    const processor = audioContext.createScriptProcessor(4096, 1, 1);
+                    const source = audioContext.createMediaStreamSource(stream);
+                    quizMediaStream = stream;
+                    quizAudioContext = audioContext;
+                    quizAudioSource = source;
+                    quizAudioProcessor = processor;
+                    quizAudioChunks = [];
+                    quizRecordingToken = token;
+                    processor.onaudioprocess = (event) => {
+                        if (!quizCancelRecording) return;
+                        quizAudioChunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+                        event.outputBuffer.getChannelData(0).fill(0);
+                    };
+                    quizCancelRecording = (cancel = true) => {
+                        if (quizRecordingTimer) window.clearTimeout(quizRecordingTimer);
+                        quizRecordingTimer = 0;
+                        const chunks = quizAudioChunks;
+                        const recordingToken = quizRecordingToken;
+                        const sampleRate = audioContext.sampleRate;
+                        quizCancelRecording = null;
+                        source.disconnect();
+                        processor.disconnect();
+                        stream.getTracks().forEach((track) => track.stop());
+                        quizMediaStream = null;
+                        quizAudioSource = null;
+                        quizAudioProcessor = null;
+                        quizAudioChunks = [];
+                        quizAudioContext = null;
+                        audioContext.close().catch((error) => {
+                            console.error('Could not close the quiz microphone audio context:', error);
+                        });
+                        if (cancel || recordingToken !== quizQuestionToken || quizAnswered || !chunks.length) return;
+
+                        const sampleCount = chunks.reduce((total, chunk) => total + chunk.length, 0);
+                        if (sampleCount < sampleRate * 0.3) {
+                            quizSpeechButton.disabled = false;
+                            quizSpeechButton.textContent = '🎙 TRY AGAIN';
+                            setQuizFeedback('I did not hear an answer. Tap to speak again.', 'error');
+                            return;
+                        }
+                        const recordedSamples = new Float32Array(sampleCount);
+                        let offset = 0;
+                        for (const chunk of chunks) {
+                            recordedSamples.set(chunk, offset);
+                            offset += chunk.length;
+                        }
+                        quizTranscribing = true;
+                        quizSpeechButton.disabled = true;
+                        quizSpeechButton.textContent = 'CHECKING ANSWER…';
+                        transcribeQuizRecording(recordedSamples, sampleRate, recordingToken);
+                    };
+                    source.connect(processor);
+                    processor.connect(audioContext.destination);
+                    quizSpeechButton.disabled = false;
+                    quizSpeechButton.textContent = 'STOP & CHECK';
+                    setQuizFeedback('Listening — say your answer, then tap STOP & CHECK.');
+                    quizRecordingTimer = window.setTimeout(() => {
+                        if (quizCancelRecording) quizCancelRecording(false);
+                    }, 6000);
+                } catch (error) {
+                    stream?.getTracks().forEach((track) => track.stop());
+                    if (audioContext && audioContext.state !== 'closed') await audioContext.close();
+                    console.error('Could not record quiz speech:', error);
+                    quizSpeechButton.disabled = false;
+                    quizSpeechButton.textContent = '🎙 TRY AGAIN';
+                    const message = error.name === 'NotAllowedError'
+                        ? 'Microphone access was denied. Allow it in Safari settings and try again.'
+                        : error.name === 'NotFoundError'
+                            ? 'No microphone was found.'
+                            : 'Could not access the microphone. Check Safari permissions and try again.';
+                    setQuizFeedback(message, 'error');
                 }
             }
 
@@ -2672,6 +2901,7 @@
                     pianoPreviousFrame = 0;
                 }
                 if (countryQuizView.classList.contains('active') && game !== 'country-quiz') {
+                    quizQuestionToken += 1;
                     stopQuizRecognition();
                 }
                 homeView.hidden = game !== null;
@@ -2703,7 +2933,10 @@
                 if (game === 'country-quiz' && !quizStarted) {
                     startCountryQuiz();
                 } else if (game === 'country-quiz' && quizCurrentCountry && !quizAnswered) {
-                    listenForQuizAnswer();
+                    quizSpeechButton.disabled = !quizSpeechSupported;
+                    quizSpeechButton.textContent = quizAsrReady
+                        ? '🎙 SPEAK ANSWER'
+                        : quizAsrLoading ? 'LOADING VOICE MODEL…' : 'LOAD VOICE MODEL (~52 MB)';
                 }
             }
 
@@ -3020,7 +3253,7 @@
                 button.addEventListener('click', () => showGame(button.dataset.openGame));
             });
             document.getElementById('homeButton').addEventListener('click', () => showGame(null));
-            quizSpeechButton.addEventListener('click', listenForQuizAnswer);
+            quizSpeechButton.addEventListener('click', recordQuizAnswer);
             quizNextButton.addEventListener('click', () => {
                 if (quizIndex >= quizOrder.length) {
                     startCountryQuiz();
