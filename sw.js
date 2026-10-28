@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pocket-arcade-v25';
+const CACHE_NAME = 'pocket-arcade-v26';
 const APP_FILES = [
     './',
     './index.html',

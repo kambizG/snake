@@ -1313,6 +1313,7 @@
             let quizAsrReject = null;
             let quizAsrReady = false;
             let quizAsrLoading = false;
+            let quizAsrError = '';
             let quizModelSupported = false;
             let quizSpeechSupported = false;
             let quizAudioContext = null;
@@ -1608,8 +1609,12 @@
                         setQuizFeedback('Tap the microphone and say your answer.');
                     } else if (quizAsrLoading) {
                         setQuizFeedback('Loading the on-device voice model. This may take a few minutes the first time.');
+                    } else if (!quizModelSupported) {
+                        setQuizFeedback('Voice model loading requires a secure HTTPS connection and support for Web Workers and WebAssembly.', 'error');
+                    } else if (quizAsrError) {
+                        setQuizFeedback(`Voice model failed to load: ${quizAsrError}. Tap retry to try again.`, 'error');
                     } else {
-                        setQuizFeedback('The voice model could not load. Check your connection and tap retry.');
+                        setQuizFeedback('Preparing the on-device voice model…');
                     }
                 } catch (error) {
                     console.error('Could not show the Flag Quiz map:', error);
@@ -1783,9 +1788,10 @@
                     if (quizAsrLoading) {
                         quizAsrLoading = false;
                         quizAsrLoadPromise = null;
+                        quizAsrError = message.message;
                         quizSpeechButton.disabled = false;
                         quizSpeechButton.textContent = 'RETRY MODEL DOWNLOAD';
-                        quizSpeechNote.textContent = 'Model download failed. Check your connection or device storage, then retry.';
+                        quizSpeechNote.textContent = `Model loading failed: ${message.message}`;
                         setQuizFeedback(`Could not load the on-device speech model: ${message.message}`, 'error');
                         if (quizAsrReject) quizAsrReject(new Error(message.message));
                         quizAsrResolve = null;
@@ -1806,6 +1812,7 @@
                 if (quizAsrReady) return Promise.resolve();
                 if (quizAsrLoadPromise) return quizAsrLoadPromise;
 
+                quizAsrError = '';
                 quizAsrLoading = true;
                 quizSpeechButton.disabled = true;
                 quizSpeechButton.textContent = 'LOADING VOICE MODEL…';
