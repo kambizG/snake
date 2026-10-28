@@ -1108,43 +1108,83 @@
                 }
             }
 
+            function resumePianoAudioFromGesture() {
+                if (!pianoAudioContext) return Promise.resolve();
+                if (pianoAudioContext.state === 'running') return Promise.resolve();
+
+                try {
+                    const resumePromise = pianoAudioContext.resume();
+                    const unlockSource = pianoAudioContext.createBufferSource();
+                    unlockSource.buffer = pianoAudioContext.createBuffer(
+                        1,
+                        1,
+                        pianoAudioContext.sampleRate
+                    );
+                    unlockSource.connect(pianoAudioContext.destination);
+                    unlockSource.start();
+                    return resumePromise.then(() => {
+                        if (pianoAudioContext.state !== 'running') {
+                            throw new Error('The browser kept the audio context suspended.');
+                        }
+                        setPianoVolume();
+                    });
+                } catch (error) {
+                    return Promise.reject(error);
+                }
+            }
+
             function playPianoNote(midiNote) {
                 if (!pianoSoundEnabled || !pianoAudioContext || !pianoMasterGain) return null;
-                if (pianoAudioContext.state !== 'running') {
-                    pianoAudioContext.resume().catch((error) => {
-                        console.error('Could not resume Water Piano audio:', error);
-                    });
-                }
-                const now = pianoAudioContext.currentTime;
-                const fundamental = 440 * (2 ** ((midiNote - 69) / 12));
-                const voiceGain = pianoAudioContext.createGain();
-                voiceGain.gain.setValueAtTime(0.0001, now);
-                voiceGain.gain.exponentialRampToValueAtTime(0.2, now + 0.012);
-                voiceGain.gain.exponentialRampToValueAtTime(0.045, now + 0.42);
-                voiceGain.connect(pianoMasterGain);
+                const voice = { gain: null, oscillators: [], released: false };
+                const startVoice = () => {
+                    if (!pianoSoundEnabled || pianoAudioContext.state !== 'running') return;
+                    const now = pianoAudioContext.currentTime;
+                    const fundamental = 440 * (2 ** ((midiNote - 69) / 12));
+                    const voiceGain = pianoAudioContext.createGain();
+                    voiceGain.gain.setValueAtTime(0.0001, now);
+                    voiceGain.gain.exponentialRampToValueAtTime(0.2, now + 0.012);
+                    if (voice.released) {
+                        voiceGain.gain.setTargetAtTime(0.0001, now + 0.035, 0.045);
+                    } else {
+                        voiceGain.gain.exponentialRampToValueAtTime(0.045, now + 0.42);
+                    }
+                    voiceGain.connect(pianoMasterGain);
 
-                const partials = [
-                    { ratio: 1, level: 0.62, type: 'triangle' },
-                    { ratio: 2, level: 0.22, type: 'sine' },
-                    { ratio: 3, level: 0.1, type: 'sine' },
-                    { ratio: 4, level: 0.045, type: 'sine' }
-                ];
-                const oscillators = partials.map((partial) => {
-                    const oscillator = pianoAudioContext.createOscillator();
-                    const partialGain = pianoAudioContext.createGain();
-                    oscillator.type = partial.type;
-                    oscillator.frequency.setValueAtTime(fundamental * partial.ratio, now);
-                    partialGain.gain.value = partial.level;
-                    oscillator.connect(partialGain);
-                    partialGain.connect(voiceGain);
-                    oscillator.start(now);
-                    return oscillator;
-                });
-                return { gain: voiceGain, oscillators };
+                    const partials = [
+                        { ratio: 1, level: 0.62, type: 'triangle' },
+                        { ratio: 2, level: 0.22, type: 'sine' },
+                        { ratio: 3, level: 0.1, type: 'sine' },
+                        { ratio: 4, level: 0.045, type: 'sine' }
+                    ];
+                    voice.gain = voiceGain;
+                    voice.oscillators = partials.map((partial) => {
+                        const oscillator = pianoAudioContext.createOscillator();
+                        const partialGain = pianoAudioContext.createGain();
+                        oscillator.type = partial.type;
+                        oscillator.frequency.setValueAtTime(fundamental * partial.ratio, now);
+                        partialGain.gain.value = partial.level;
+                        oscillator.connect(partialGain);
+                        partialGain.connect(voiceGain);
+                        oscillator.start(now);
+                        if (voice.released) oscillator.stop(now + 0.28);
+                        return oscillator;
+                    });
+                };
+
+                if (pianoAudioContext.state === 'running') {
+                    startVoice();
+                } else {
+                    resumePianoAudioFromGesture()
+                        .then(startVoice)
+                        .catch((error) => console.error('Could not start Water Piano audio:', error));
+                }
+                return voice;
             }
 
             function releasePianoVoice(voice) {
-                if (!voice || !pianoAudioContext) return;
+                if (!voice) return;
+                voice.released = true;
+                if (!voice.gain || !pianoAudioContext) return;
                 const now = pianoAudioContext.currentTime;
                 voice.gain.gain.cancelScheduledValues(now);
                 voice.gain.gain.setTargetAtTime(0.0001, now, 0.055);
