@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pocket-arcade-v27';
+const CACHE_NAME = 'pocket-arcade-v28';
 const APP_FILES = [
     './',
     './index.html',
@@ -36,6 +36,10 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
+
+    const requestUrl = new URL(event.request.url);
+    const moviesPath = new URL('movies/', self.registration.scope).pathname;
+    if (requestUrl.pathname === moviesPath.slice(0, -1) || requestUrl.pathname.startsWith(moviesPath)) return;
 
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {

@@ -1,0 +1,13 @@
+# Add these locations inside the existing server { ... } block.
+# This publicly exposes the movie directory and allows streaming its files.
+location = /movies {
+    return 301 /movies/;
+}
+
+location /movies/ {
+    alias /media/kambiz/0704622451_Kambiz/movies/;
+    autoindex on;
+    autoindex_format json;
+    autoindex_localtime on;
+    add_header Cache-Control "no-store";
+}

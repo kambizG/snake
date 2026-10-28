@@ -419,6 +419,92 @@
             display: flex;
         }
 
+        .movies-view {
+            min-height: 0;
+        }
+
+        .movies-panel {
+            min-height: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 14px;
+            border: 1px solid #344537;
+            border-radius: 18px;
+            background: linear-gradient(155deg, #202d22, #172119);
+        }
+
+        .movies-heading {
+            margin: 0;
+            color: #e6f4d7;
+            font-size: 18px;
+        }
+
+        .movies-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .movies-status {
+            min-height: 20px;
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .movies-status.error {
+            color: #ff9a8d;
+        }
+
+        .movies-player {
+            width: 100%;
+            max-height: 48dvh;
+            border-radius: 12px;
+            background: #080c09;
+        }
+
+        .movies-list {
+            min-height: 0;
+            flex: 1;
+            display: grid;
+            gap: 7px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+
+        .movie-item {
+            min-height: 46px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 11px;
+            border: 1px solid #344537;
+            border-radius: 10px;
+            background: #111a13;
+            color: #e6f4d7;
+            font: inherit;
+            font-size: 13px;
+            text-align: left;
+            overflow-wrap: anywhere;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .movie-item::before {
+            content: "▶";
+            flex: 0 0 auto;
+            color: var(--lime);
+            font-size: 12px;
+        }
+
+        .movie-item[aria-current="true"] {
+            border-color: var(--lime);
+        }
+
         .cube-score-row {
             min-height: 64px;
             display: flex;
@@ -1070,6 +1156,19 @@
                         <span class="game-card-description">Flags, countries & capitals</span>
                     </span>
                 </button>
+                <button class="game-card" type="button" data-open-game="movies">
+                    <span class="game-icon" aria-hidden="true">
+                        <svg viewBox="0 0 120 100" fill="none">
+                            <rect x="17" y="20" width="86" height="60" rx="8" fill="#172119" stroke="#71c3c0" stroke-width="4"/>
+                            <path d="m51 36 27 14-27 14z" fill="#b7f36b"/>
+                            <path d="M25 14h12v12H25zm24 0h12v12H49zm24 0h12v12H73zm-48 60h12v12H25zm24 0h12v12H49zm24 0h12v12H73z" fill="#f3cf76"/>
+                        </svg>
+                    </span>
+                    <span class="game-card-copy">
+                        <span class="game-card-title">Movies</span>
+                        <span class="game-card-description">Stream from your library</span>
+                    </span>
+                </button>
             </div>
             <p class="home-tagline">PICK A GAME AND PLAY</p>
         </section>
@@ -1219,6 +1318,18 @@
                 <p class="quiz-speech-note" id="quizSpeechNote">Downloads about 52 MB once. Speech is processed on-device and cached for later use.</p>
             </div>
         </section>
+
+        <section class="game-view movies-view" id="moviesView" aria-label="Movie library">
+            <div class="movies-panel">
+                <div class="movies-title-row">
+                    <h2 class="movies-heading">MOVIE LIBRARY</h2>
+                    <button class="small-button" id="moviesRefreshButton" type="button">REFRESH</button>
+                </div>
+                <p class="movies-status" id="moviesStatus" role="status" aria-live="polite">Loading movies…</p>
+                <video class="movies-player" id="moviesPlayer" controls playsinline preload="metadata" hidden></video>
+                <div class="movies-list" id="moviesList" aria-label="Available movies"></div>
+            </div>
+        </section>
     </main>
 
     <script>
@@ -1285,6 +1396,11 @@
             const pianoContext = pianoCanvas.getContext('2d');
             const pianoSoundButton = document.getElementById('pianoSoundButton');
             const countryQuizView = document.getElementById('countryQuizView');
+            const moviesView = document.getElementById('moviesView');
+            const moviesStatus = document.getElementById('moviesStatus');
+            const moviesList = document.getElementById('moviesList');
+            const moviesPlayer = document.getElementById('moviesPlayer');
+            const moviesRefreshButton = document.getElementById('moviesRefreshButton');
             const quizScoreOutput = document.getElementById('quizScore');
             const quizCorrectOutput = document.getElementById('quizCorrect');
             const quizProgress = document.getElementById('quizProgress');
@@ -1329,6 +1445,10 @@
             let quizMapLoad = null;
             let quizMapAnimationCancel = null;
             let quizQuestionToken = 0;
+            let moviesLoaded = false;
+            let moviesLoading = false;
+            let movieNames = [];
+            const movieExtensions = new Set(['mp4', 'm4v', 'mov', 'webm', 'ogv', 'ogg']);
             const cubeColors = {
                 '0,1,0': '#f5f4ed',
                 '0,-1,0': '#ffd84a',
@@ -2932,12 +3052,16 @@
                     quizQuestionToken += 1;
                     stopQuizRecognition();
                 }
+                if (moviesView.classList.contains('active') && game !== 'movies') {
+                    moviesPlayer.pause();
+                }
                 homeView.hidden = game !== null;
                 snakeView.classList.toggle('active', game === 'snake');
                 cubeView.classList.toggle('active', game === 'cube');
                 riverView.classList.toggle('active', game === 'river');
                 pianoView.classList.toggle('active', game === 'water-piano');
                 countryQuizView.classList.toggle('active', game === 'country-quiz');
+                moviesView.classList.toggle('active', game === 'movies');
                 app.classList.toggle('game-mode', game !== null);
                 app.classList.toggle('home-mode', game === null);
 
@@ -2966,7 +3090,88 @@
                         ? quizSpeechSupported ? '🎙 SPEAK ANSWER' : 'MICROPHONE NOT SUPPORTED'
                         : quizAsrLoading ? 'LOADING VOICE MODEL…' : 'LOAD VOICE MODEL (~52 MB)';
                 }
+                if (game === 'movies' && !moviesLoaded) loadMovies();
             }
+
+            function setMoviesStatus(message, isError = false) {
+                moviesStatus.textContent = message;
+                moviesStatus.classList.toggle('error', isError);
+            }
+
+            async function loadMovies() {
+                if (moviesLoading) return;
+                moviesLoading = true;
+                setMoviesStatus('Loading movie list…');
+                try {
+                    const response = await fetch('/movies/', { cache: 'no-store' });
+                    if (!response.ok) throw new Error(`Movie directory request failed (${response.status}).`);
+                    const entries = await response.json();
+                    if (!Array.isArray(entries)) throw new Error('The movie directory did not return a JSON listing.');
+
+                    movieNames = entries
+                        .filter((entry) => entry?.type === 'file' && typeof entry.name === 'string' &&
+                            !entry.name.includes('/') && !entry.name.includes('\\') &&
+                            movieExtensions.has(entry.name.split('.').pop().toLowerCase()))
+                        .map((entry) => entry.name)
+                        .sort((left, right) => left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' }));
+
+                    moviesList.replaceChildren();
+                    if (!movieNames.length) {
+                        setMoviesStatus('No supported movie files found (MP4, M4V, MOV, WebM, OGV).');
+                        moviesLoaded = true;
+                        return;
+                    }
+
+                    const buttons = movieNames.map((name) => {
+                        const button = document.createElement('button');
+                        button.className = 'movie-item';
+                        button.type = 'button';
+                        button.textContent = name;
+                        button.addEventListener('click', () => playMovie(name, button));
+                        return button;
+                    });
+                    moviesList.replaceChildren(...buttons);
+                    setMoviesStatus(`${movieNames.length} movie${movieNames.length === 1 ? '' : 's'} available.`);
+                    moviesLoaded = true;
+                } catch (error) {
+                    console.error('Could not load the movie directory:', error);
+                    setMoviesStatus(
+                        `Could not load movies: ${error instanceof Error ? error.message : String(error)} Configure Nginx /movies/ to return a JSON directory listing.`,
+                        true
+                    );
+                } finally {
+                    moviesLoading = false;
+                }
+            }
+
+            async function playMovie(name, button) {
+                const url = new URL(`/movies/${encodeURIComponent(name)}`, location.origin);
+                moviesPlayer.hidden = false;
+                moviesPlayer.pause();
+                moviesPlayer.src = url.href;
+                moviesPlayer.load();
+                moviesList.querySelector('[aria-current="true"]')?.removeAttribute('aria-current');
+                button.setAttribute('aria-current', 'true');
+                setMoviesStatus(`Playing: ${name}`);
+                try {
+                    await moviesPlayer.play();
+                } catch (error) {
+                    console.error('Could not play the selected movie:', error);
+                    setMoviesStatus(
+                        `Could not play ${name}: ${error instanceof Error ? error.message : String(error)} Check that Safari supports this video format.`,
+                        true
+                    );
+                }
+            }
+
+            moviesPlayer.addEventListener('error', () => {
+                const name = moviesPlayer.currentSrc.split('/').pop() || 'movie';
+                setMoviesStatus(`Could not load ${decodeURIComponent(name)}. Check the file and Nginx video permissions.`, true);
+            });
+            moviesRefreshButton.addEventListener('click', () => {
+                moviesLoaded = false;
+                loadMovies();
+            });
 
             bestOutput.value = String(bestScore).padStart(2, '0');
             bestOutput.textContent = bestOutput.value;
