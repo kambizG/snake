@@ -467,6 +467,23 @@
             background: #080c09;
         }
 
+        .movie-open-vlc {
+            min-height: 42px;
+            border: 1px solid #536b46;
+            border-radius: 10px;
+            padding: 0 14px;
+            background: #253328;
+            color: var(--lime);
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .movie-open-vlc[hidden] {
+            display: none;
+        }
+
         .movies-list {
             min-height: 0;
             flex: 1;
@@ -1327,6 +1344,7 @@
                 </div>
                 <p class="movies-status" id="moviesStatus" role="status" aria-live="polite">Loading movies…</p>
                 <video class="movies-player" id="moviesPlayer" controls playsinline preload="metadata" hidden></video>
+                <button class="movie-open-vlc" id="movieOpenVlc" type="button" hidden>OPEN IN VLC</button>
                 <div class="movies-list" id="moviesList" aria-label="Available movies"></div>
             </div>
         </section>
@@ -1400,6 +1418,7 @@
             const moviesStatus = document.getElementById('moviesStatus');
             const moviesList = document.getElementById('moviesList');
             const moviesPlayer = document.getElementById('moviesPlayer');
+            const movieOpenVlc = document.getElementById('movieOpenVlc');
             const moviesRefreshButton = document.getElementById('moviesRefreshButton');
             const quizScoreOutput = document.getElementById('quizScore');
             const quizCorrectOutput = document.getElementById('quizCorrect');
@@ -1450,6 +1469,7 @@
             let movieNames = [];
             let movieSubtitleUrl = null;
             let movieLoadToken = 0;
+            let selectedMovieUrl = null;
             const movieExtensions = new Set(['mp4', 'm4v', 'mov', 'mkv', 'webm', 'ogv', 'ogg']);
             const cubeColors = {
                 '0,1,0': '#f5f4ed',
@@ -3226,6 +3246,8 @@
                 releaseMovieSubtitle();
                 const encodedPath = path.split('/').map(encodeURIComponent).join('/');
                 const url = new URL(`/movies/${encodedPath}`, location.origin);
+                selectedMovieUrl = url.href;
+                movieOpenVlc.hidden = !path.toLowerCase().endsWith('.mkv');
                 moviesPlayer.hidden = false;
                 moviesPlayer.pause();
                 moviesPlayer.src = url.href;
@@ -3292,6 +3314,12 @@
                     }
                 }
             }
+
+            movieOpenVlc.addEventListener('click', () => {
+                if (!selectedMovieUrl) return;
+                const vlcUrl = `vlc-x-callback://x-callback-url/stream?url=${encodeURIComponent(selectedMovieUrl)}`;
+                window.location.href = vlcUrl;
+            });
 
             moviesPlayer.addEventListener('error', () => {
                 movieLoadToken += 1;
